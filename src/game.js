@@ -171,7 +171,7 @@ function greenToRedFade(fraction) {
   } else {
     green = 255;
     fraction -= 255;
-    red = 256 - (fraction * fraction / 255);
+    red = 255 - (fraction * fraction / 255);
     red = Math.round(red);
   }
 
