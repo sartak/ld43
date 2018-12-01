@@ -143,20 +143,26 @@ function createSidekick({ x, y }, isInitial) {
     createHpBar(sidekick, 300);
   }
 
+  sidekick.xHold = 0;
+  sidekick.yHold = 0;
   sidekick.name = 'sidekick';
 
   return sidekick;
 }
 
 function replaceSidekick(existing) {
-  const replacement = createSidekick({ x: existing.x,
-    y: existing.y }, false);
+  const replacement = createSidekick({
+    x: existing.x,
+    y: existing.y,
+  }, false);
 
   replacement.hpBar = existing.hpBar;
   replacement.previousHP = existing.previousHP;
   replacement.currentHP = existing.currentHP;
   replacement.maxHP = existing.maxHP;
   replacement.cachedVelocity = existing.cachedVelocity;
+  replacement.yHoldUp = existing.yHoldUp;
+  delete replacement.yHoldTween;
 
   existing.destroy();
 
@@ -451,7 +457,7 @@ function create() {
 
   state.matter = matter;
 
-  state.sky = game.add.sprite(400, 300, level.name);
+  state.background = game.add.sprite(400, 300, level.name);
 
   createMap();
 
@@ -672,14 +678,15 @@ function updateCameraAndBounds() {
 
   leftWall.x = Math.max(-50, leftBound - 50);
 
-  // parallax should depend on sky width and level width
-  // worldView.x = 0 means we show sky's left border
-  // worldView.x = lvl.width means we show sky's right border
-  state.sky.x = state.sky.width / 2 + leftBound * (state.sky.width / (level.width - config.width));
+  // parallax should depend on bg width and level width
+  // worldView.x = 0 means we show bg's left border
+  // worldView.x = lvl.width means we show bg's right border
+  state.background.x = state.background.width / 2 + leftBound * (state.background.width / (level.width - config.width));
 }
 
 function respawnIfNeeded(character) {
-  const { game } = state;
+  const { game, hero, background } = state;
+  let { sidekick } = state;
 
   if (character.currentHP > 0) {
     return;
@@ -687,6 +694,27 @@ function respawnIfNeeded(character) {
 
   if (character.isRespawnBeginning) {
     return;
+  }
+
+  if (character === hero) {
+    if (state.throwState === 'hold') {
+      sidekick = state.sidekick = replaceSidekick(sidekick);
+    }
+
+    state.throwState = 'calm';
+
+    background.heroDieTween = game.tweens.addCounter({
+      from: 0,
+      to: 70,
+      duration: 300,
+      onUpdate: () => {
+        const tint = Phaser.Display.Color.Interpolate.ColorWithColor(whiteColor, redColor, 100, background.heroDieTween.getValue());
+        const color = Phaser.Display.Color.ObjectToColor(tint).color;
+        background.setTint(color);
+      },
+    });
+  } else if (character === sidekick) {
+    state.throwState = 'calm';
   }
 
   game.tweens.add({
@@ -701,7 +729,7 @@ function respawnIfNeeded(character) {
       character.setVelocityX(0);
       character.setVelocityY(0);
 
-      if (character === state.sidekick) {
+      if (character === sidekick) {
         character.isRespawning = false;
       }
 
@@ -714,7 +742,18 @@ function respawnIfNeeded(character) {
       game.time.addEvent({
         delay: 1000,
         callback: () => {
-          character.setVelocityY(10);
+          if (character === hero) {
+            background.heroDieTween = game.tweens.addCounter({
+              from: background.heroDieTween.getValue(),
+              to: 0,
+              duration: 300,
+              onUpdate: () => {
+                const tint = Phaser.Display.Color.Interpolate.ColorWithColor(whiteColor, redColor, 100, background.heroDieTween.getValue());
+                const color = Phaser.Display.Color.ObjectToColor(tint).color;
+                background.setTint(color);
+              },
+            });
+          }
         },
       });
     },
@@ -741,7 +780,7 @@ function updateSidekick() {
   updateHpBarFor(sidekick);
   respawnIfNeeded(sidekick);
 
-  if (sidekick.isRespawnBeginning) {
+  if (sidekick.isRespawnBeginning || hero.isRespawning) {
     return;
   }
 
@@ -811,8 +850,8 @@ function updateSidekick() {
       }
       break;
     case 'hold': {
-      sidekick.x = hero.x + (state.facingRight ? 10 : -10);
-      sidekick.y = hero.y + 10;
+      sidekick.x = hero.x + (state.facingRight ? 10 : -10) + sidekick.xHold;
+      sidekick.y = hero.y + 10 + sidekick.yHold;
 
       if (zDownStart) {
         state.throwState = 'throw';
@@ -846,7 +885,7 @@ function updateSidekick() {
 }
 
 function updateHero() {
-  const { game, matter, hero, cursors, keys, throwState } = state;
+  const { game, matter, hero, cursors, keys, throwState, sidekick } = state;
 
   updateCachedVelocityFor(hero);
   updateHpBarFor(hero);
@@ -877,6 +916,61 @@ function updateHero() {
       x: throwState === 'hold' ? 0.025 : 0.1,
       y: 0,
     });
+  }
+
+  // if we are walking while holding
+  sidekick.xHold = 0;
+  if (throwState === 'hold') {
+    if (Math.abs(hero.body.velocity.x) > 1) {
+      sidekick.xHold = -hero.body.velocity.x / 2;
+    }
+
+    if ((cursors.left.isDown || cursors.right.isDown) && hero.touching.bottom) {
+      if (!sidekick.yHoldTween) {
+        if (sidekick.yRecoverTween) {
+          sidekick.yRecoverTween.stop();
+          delete sidekick.yRecoverTween;
+        }
+        sidekick.yHoldTween = game.tweens.addCounter({
+          from: sidekick.yHoldFrom || 0,
+          to: 100,
+          ease: 'Quad.easeInOut',
+          duration: 100,
+          onUpdate: () => {
+            if (sidekick.yHoldTween) {
+              sidekick.yHold = (sidekick.yHoldUp ? -3 : 3) * sidekick.yHoldTween.getValue() / 100;
+            }
+          },
+          onComplete: () => {
+            sidekick.yHoldUp = !sidekick.yHoldUp;
+            sidekick.yHoldFrom = -100;
+            delete sidekick.yHoldTween;
+          },
+        });
+      }
+    } else if (sidekick.yHold !== 0) {
+      if (!sidekick.yRecoverTween) {
+        if (sidekick.yHoldTween) {
+          sidekick.yHoldTween.stop();
+          delete sidekick.yHoldTween;
+        }
+        sidekick.yRecoverTween = game.tweens.addCounter({
+          from: sidekick.yHold,
+          to: 0,
+          duration: 100,
+          ease: 'Quad.easeInOut',
+          onUpdate: () => {
+            if (sidekick.yRecoverTween) {
+              sidekick.yHold = sidekick.yRecoverTween.getValue();
+            }
+          },
+          onComplete: () => {
+            delete sidekick.yRecoverTween;
+            sidekick.yHoldFrom = 0;
+          },
+        });
+      }
+    }
   }
 
   if (hero.touching.bottom && cursors.up.isDown) {
