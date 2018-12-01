@@ -26,6 +26,8 @@
     "prefer-destructuring": ["off"],
     "no-use-before-define": ["off"],
     "no-multi-assign": ["off"],
-    "no-unused-vars": ["off"]
+    "no-unused-vars": ["off"],
+    "no-mixed-operators": ["off"],
+    "max-len": ["off"]
   }
 }
