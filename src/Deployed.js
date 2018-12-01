@@ -46,6 +46,15 @@ class GameMetadata extends Component<{}> {
             github.com/sartak/LD43
           </a>
         </p>
+        <p>
+          controls:
+          <ul>
+            <li>z: pickup, throw</li>
+            <li>↑: jump</li>
+            <li>←: left</li>
+            <li>→: right</li>
+          </ul>
+        </p>
       </div>
     );
   }
