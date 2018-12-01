@@ -9,6 +9,7 @@ import skyImage from './assets/sky.png';
 import skyImage2 from './assets/sky-2.png';
 import groundImage from './assets/ground.png';
 import wallImage from './assets/wall.png';
+import hpbarImage from './assets/hpbar.png';
 
 import physicsShapes from './assets/physics.json';
 
@@ -64,6 +65,7 @@ function preload() {
   game.load.image('sky-2', skyImage2);
   game.load.image('ground', groundImage);
   game.load.image('wall', wallImage);
+  game.load.image('hpbar', hpbarImage);
 }
 
 function createHero(x, y) {
@@ -75,10 +77,10 @@ function createHero(x, y) {
   const { width: w, height: h } = hero;
 
   const sensors = hero.sensors = {
-    t: Bodies.rectangle(0, -h * 0.5, w, 2, { isSensor: true }),
-    b: Bodies.rectangle(0, h * 0.5 + 2, w, 2, { isSensor: true }),
-    l: Bodies.rectangle(-w * 0.5, 0, 2, h, { isSensor: true }),
-    r: Bodies.rectangle(w * 0.5, 0, 2, h, { isSensor: true }),
+    t: Bodies.rectangle(0, -h * 0.5, w-8, 2, { isSensor: true }),
+    b: Bodies.rectangle(0, h * 0.5 + 2, w-8, 2, { isSensor: true }),
+    l: Bodies.rectangle(-w * 0.5, 0, 2, h-8, { isSensor: true }),
+    r: Bodies.rectangle(w * 0.5, 0, 2, h-8, { isSensor: true }),
   };
 
   const compoundBody = Body.create({
@@ -101,17 +103,45 @@ function createHero(x, y) {
     ground: false,
   };
 
+  createHpBar(hero);
+
   return hero;
 }
 
-function createSidekick(x, y) {
+function createSidekick(x, y, isInitial) {
   const { game } = state;
 
   const sidekick = game.matter.add.sprite(x, y, 'sidekick', null, { shape: physicsShapes.sidekick });
 
+  if (isInitial) {
+    createHpBar(sidekick);
+  }
+
   sidekick.name = 'sidekick';
 
   return sidekick;
+}
+
+function replaceSidekick(existing) {
+  const replacement = createSidekick(existing.x, existing.y, false);
+
+  replacement.hpBar = existing.hpBar;
+  replacement.currentHP = existing.currentHP;
+  replacement.maxHP = existing.maxHP;
+
+  existing.destroy();
+
+  return replacement;
+}
+
+function createHpBar(owner) {
+  const { game } = state;
+  const { x, y } = owner;
+  const hpBar = game.add.sprite(x, y, 'hpbar');
+  owner.hpBar = hpBar;
+  owner.currentHP = 100;
+  owner.maxHP = 100;
+  return hpBar;
 }
 
 function createEnemy(type, x, y) {
@@ -120,7 +150,67 @@ function createEnemy(type, x, y) {
 
   const enemy = game.matter.add.sprite(x, y, enemyId, null, { shape: physicsShapes[enemyId] });
 
+  createHpBar(enemy);
+
   return enemy;
+}
+
+function greenToRedFade(fraction) {
+  fraction = Math.min(Math.max(0, fraction), 1) * 510;
+  const blue = 0;
+  let red;
+  let green;
+  if (fraction < 255) {
+    red = 255;
+    green = Math.sqrt(fraction) * 16;
+    green = Math.round(green);
+  } else {
+    green = 255;
+    fraction -= 255;
+    red = 256 - (fraction * fraction / 255);
+    red = Math.round(red);
+  }
+
+  return blue + 256 * green + 256*256*red;
+}
+
+function updateHpBarFor(owner) {
+  const { currentHP, maxHP, hpBar } = owner;
+  // respect rotation? offset?
+  hpBar.x = owner.x;
+  hpBar.y = owner.y - owner.height * 0.75;
+  const percentHP = currentHP / maxHP;
+  hpBar.setCrop(0, 0, hpBar.width * percentHP, hpBar.height);
+  hpBar.tint = greenToRedFade(percentHP);
+}
+
+function updateEnemy(enemy) {
+  updateCachedVelocityFor(enemy);
+  updateHpBarFor(enemy);
+
+  if (enemy.currentHP < 0) {
+    removeEnemy(enemy);
+  }
+}
+
+function updateCachedVelocityFor(character) {
+  character.cachedVelocity = {
+    x: character.body.velocity.x,
+    y: character.body.velocity.y,
+  };
+}
+
+function removeHpBarFor(owner) {
+  const { hpBar } = owner;
+  hpBar.destroy();
+}
+
+function removeEnemy(enemy) {
+  const { matter } = state;
+  removeHpBarFor(enemy);
+  state.enemies = state.enemies.filter(e => e !== enemy);
+  matter.world.remove(enemy);
+  enemy.destroy();
 }
 
 function createWall(isRight, x, y) {
@@ -181,7 +271,7 @@ function create() {
   const characterY = 20 + config.height - (config.characterHeight/2);
   const hero = state.hero = createHero(150, characterY);
 
-  const sidekick = state.sidekick = createSidekick(100, characterY);
+  const sidekick = state.sidekick = createSidekick(100, characterY, true);
 
   // target, round pixels for jitter, lerpx, lerpy, offsetx, offsety
   game.cameras.main.startFollow(hero, false, 0.05, 0, 0, 270);
@@ -230,7 +320,7 @@ function create() {
 }
 
 function collisionStart(event) {
-  const { hero, sidekick, zDown, matter } = state;
+  const { hero, sidekick, zDown, matter, enemies } = state;
   event.pairs.forEach(({ bodyA, bodyB, separation }) => {
     const a = bodyA.gameObject;
     const b = bodyB.gameObject;
@@ -265,6 +355,20 @@ function collisionStart(event) {
       sidekick.angle = 0;
       matter.world.remove(sidekick);
     }
+
+    const isEnemy = enemies.find(enemy => (enemy === a || enemy === b));
+    if (isEnemy && (a === sidekick || b === sidekick)) {
+      a.currentHP -= 10;
+      b.currentHP -= 10;
+
+      const { Vector } = Phaser.Physics.Matter.Matter;
+      const aMomentum = Vector.mult(a.cachedVelocity, a.body.mass);
+      const bMomentum = Vector.mult(b.cachedVelocity, b.body.mass);
+      const relativeMomentum = Vector.sub(aMomentum, bMomentum);
+      const impact = Math.sqrt(Vector.magnitude(relativeMomentum));
+      a.currentHP -= impact;
+      b.currentHP -= impact;
+    }
   });
 }
 
@@ -295,10 +399,17 @@ function collisionEnd(event) {
 
 // parameter t is milliseconds since load
 function update() {
-  const { game, ceiling, leftWall, rightWall } = state;
+  const { enemies } = state;
 
   updateHero();
+  updateSidekick();
+  enemies.forEach(enemy => updateEnemy(enemy));
 
+  updateCameraAndBounds();
+}
+
+function updateCameraAndBounds() {
+  const { game, ceiling, leftWall, rightWall } = state;
   const screenWidth = 800;
 
   const leftBound = Math.min(game.cameras.main.scrollX, config.levelWidth - screenWidth);
@@ -308,7 +419,7 @@ function update() {
 
   Phaser.Physics.Matter.Matter.Body.setPosition(ceiling, {
     x: 400 + leftBound,
-    y: ceiling.position.y 
+    y: ceiling.position.y,
   });
 
   leftWall.x = Math.max(-40, leftBound - 50);
@@ -320,34 +431,12 @@ function update() {
   state.sky.x = state.sky.width / 2 + leftBound * (state.sky.width / (config.levelWidth - screenWidth));
 }
 
-function updateHero() {
-  const { game, matter, hero, cursors, keys } = state;
+function updateSidekick() {
+  const { game, hero, keys } = state;
   let { sidekick } = state;
 
-  const { velocity } = hero.body;
-  if (cursors.left.isDown) {
-    state.facingRight = false;
-    hero.setFlipX(true);
-    hero.applyForce({
-      x: state.throwState === 'hold' ? -0.025 : -0.1,
-      y: 0,
-    });
-  }
-
-  if (cursors.right.isDown) {
-    state.facingRight = true;
-    hero.setFlipX(false);
-    hero.applyForce({
-      x: state.throwState === 'hold' ? 0.025 : 0.1,
-      y: 0,
-    });
-  }
-  if (hero.touching.bottom && cursors.up.isDown) {
-    hero.applyForce({
-      x: 0,
-      y: -0.25,
-    });
-  }
+  updateCachedVelocityFor(sidekick);
+  updateHpBarFor(sidekick);
 
   const zDownStart = Phaser.Input.Keyboard.JustDown(keys.Z);
   state.zDown = keys.Z.isDown;
@@ -403,20 +492,15 @@ function updateHero() {
       }
       break;
     case 'hold': {
-      let x = hero.x + (state.facingRight ? 10 : -10);
-      const y = hero.y + 10;
-      sidekick.x = x;
-      sidekick.y = y;
+      sidekick.x = hero.x + (state.facingRight ? 10 : -10);
+      sidekick.y = hero.y + 10;
 
       if (zDownStart) {
         state.throwState = 'throw';
 
         // recreate a new sidekick because re-adding to
         // physics seems unsupported
-        sidekick.destroy();
-
-        x += (state.facingRight ? 20 : -20);
-        sidekick = state.sidekick = createSidekick(x, y);
+        sidekick = state.sidekick = replaceSidekick(sidekick);
 
         sidekick.applyForce({
           x: state.facingRight ? 0.75 : -0.75,
@@ -439,6 +523,38 @@ function updateHero() {
     }
     case 'throw':
       break;
+  }
+}
+
+function updateHero() {
+  const { game, matter, hero, cursors, keys } = state;
+
+  updateCachedVelocityFor(hero);
+  updateHpBarFor(hero);
+
+  const { velocity } = hero.body;
+  if (cursors.left.isDown) {
+    state.facingRight = false;
+    hero.setFlipX(true);
+    hero.applyForce({
+      x: state.throwState === 'hold' ? -0.025 : -0.1,
+      y: 0,
+    });
+  }
+
+  if (cursors.right.isDown) {
+    state.facingRight = true;
+    hero.setFlipX(false);
+    hero.applyForce({
+      x: state.throwState === 'hold' ? 0.025 : 0.1,
+      y: 0,
+    });
+  }
+  if (hero.touching.bottom && cursors.up.isDown) {
+    hero.applyForce({
+      x: 0,
+      y: -0.25,
+    });
   }
 
   if (velocity.x > 5) hero.setVelocityX(5);
