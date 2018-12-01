@@ -238,13 +238,28 @@ function updateHpBarFor(owner) {
 }
 
 function updateEnemy(enemy) {
-  const { hero, waveEnemies, game } = state;
+  const { hero, waveEnemies, game, matter } = state;
+
+  if (enemy.isDying) {
+    return;
+  }
 
   updateCachedVelocityFor(enemy);
   updateHpBarFor(enemy);
 
   if (enemy.currentHP <= 0) {
-    removeEnemy(enemy);
+    enemy.isDying = true;
+    matter.world.remove(enemy);
+    game.tweens.add({
+      targets: enemy,
+      alpha: 0,
+      y: enemy.y - 100,
+      angle: enemy.angle - 45,
+      duration: 500,
+      onComplete: () => {
+        removeEnemy(enemy);
+      },
+    });
     return;
   }
 
@@ -293,7 +308,6 @@ function removeEnemy(enemy) {
   removeHpBarFor(enemy);
   state.enemies = state.enemies.filter(e => e !== enemy);
   state.waveEnemies = state.waveEnemies.filter(e => e !== enemy);
-  matter.world.remove(enemy);
   enemy.destroy();
 }
 
