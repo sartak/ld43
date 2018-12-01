@@ -28,6 +28,7 @@
     "no-multi-assign": ["off"],
     "no-unused-vars": ["off"],
     "no-mixed-operators": ["off"],
-    "max-len": ["off"]
+    "max-len": ["off"],
+    "camelcase": ["off"]
   }
 }
