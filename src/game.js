@@ -20,6 +20,7 @@ const config = {
   debug: DEBUG,
   type: Phaser.AUTO,
   parent: 'engine',
+  levelWidth: 800 * 3,
   width: 800,
   height: 600,
   characterHeight: 100,
@@ -42,6 +43,7 @@ const state : any = {
   enemies: [],
   keys: {},
   throwState: 'calm',
+  wigglePhase: 0,
 };
 
 if (DEBUG) {
@@ -123,15 +125,13 @@ function create() {
 
   state.matter = matter;
 
-  const levelWidth = 800*3;
-
   state.sky = game.add.sprite(400, 300, 'sky');
 
-  const ground = state.ground = matter.add.sprite(levelWidth / 2, config.height - (config.groundHeight/2), 'ground', null, { shape: physicsShapes.ground }).setScale(3);
+  const ground = state.ground = matter.add.sprite(config.levelWidth / 2, config.height - (config.groundHeight/2), 'ground', null, { shape: physicsShapes.ground }).setScale(3);
   ground.name = 'ground';
 
   const leftWall = state.leftWall = matter.add.sprite(5, 400, 'wall', null, { shape: physicsShapes.wall });
-  const rightWall = state.rightWall = matter.add.sprite(levelWidth - 5, 400, 'wall', null, { shape: physicsShapes.wall });
+  const rightWall = state.rightWall = matter.add.sprite(config.levelWidth - 5, 400, 'wall', null, { shape: physicsShapes.wall });
   rightWall.setFlipX(true);
 
   // +20 for a little bit of dynamism on load
@@ -143,7 +143,7 @@ function create() {
   // target, round pixels for jitter, lerpx, lerpy, offsetx, offsety
   game.cameras.main.startFollow(hero, false, 0.05, 0, 0, 270);
 
-  game.cameras.main.setBounds(0, 0, levelWidth, 1080 * 2);
+  game.cameras.main.setBounds(0, 0, config.levelWidth, 1080 * 2);
 
   // limit the amount of useless scrolling
   //     game.camera.deadzone = new Phaser.Rectangle(100, 100, 600, 400);
@@ -228,21 +228,24 @@ function create() {
 
 // parameter t is milliseconds since load
 function update() {
-  const { game, leftWall } = state;
+  const { game, leftWall, rightWall } = state;
 
   updateHero();
 
   const screenWidth = 800;
-  const levelWidth = 800*3;
-  const leftBound = Math.min(game.cameras.main.scrollX, levelWidth - 800);
-  game.cameras.main.setBounds(leftBound, 0, levelWidth - leftBound, 1080 * 2);
+
+  const leftBound = Math.min(game.cameras.main.scrollX, config.levelWidth - screenWidth);
+  const rightBound = leftBound + screenWidth;
+
+  game.cameras.main.setBounds(leftBound, 0, config.levelWidth - leftBound, 1080 * 2);
 
   leftWall.x = Math.max(leftWall.width / 2, leftBound - leftWall.width / 2);
+  rightWall.x = Math.min(config.levelWidth - rightWall.width / 2, rightBound + rightWall.width / 2);
 
   // parallax should depend on sky width and level width
   // worldView.x = 0 means we show sky's left border
   // worldView.x = lvl.width means we show sky's right border
-  state.sky.x = state.sky.width / 2 + leftBound * (state.sky.width / (levelWidth - screenWidth));
+  state.sky.x = state.sky.width / 2 + leftBound * (state.sky.width / (config.levelWidth - screenWidth));
 }
 
 function updateHero() {
@@ -274,7 +277,6 @@ function updateHero() {
 
   switch (state.throwState) {
     default:
-      alert(`unexpected throwState: ${state.throwState}`);
       break;
 
     case 'calm':
@@ -284,25 +286,57 @@ function updateHero() {
       break;
     case 'pull':
       if (keys.Z.isDown) {
-        const holdable = true;
+        const dx = hero.x - sidekick.x;
+        const dy = hero.y - sidekick.y;
+        const dx2dy2 = dx*dx + dy*dy;
+        const holdable = dx2dy2 < 75*75;
         if (holdable) {
           state.throwState = 'hold';
+
+          if (state.sidekickAngleRestore) {
+            state.sidekickAngleRestore.stop();
+            delete state.sidekickAngleRestore;
+          }
+
+          sidekick.angle = 0;
           matter.world.remove(sidekick);
         } else {
-          const tractable = true;
+          const tractable = dx2dy2 < 200*200;
           if (tractable) {
             // tractor beam towards player
+            // apply a force vector based on the angle
             sidekick.applyForce({
+              x: dx < 0 ? -0.03 : 0.03,
+              y: dy < 0 ? -0.03 : 0.03,
             });
 
             // tween toward zero
-            sidekick.angle = 0;
+            //
+            if (!state.sidekickAngleRestore) {
+              state.sidekickAngleRestore = game.tweens.add({
+                targets: sidekick,
+                angle: 0,
+                duration: 200,
+              });
+            }
           } else {
             // wiggle but don't move
+            sidekick.setAngularVelocity(state.wigglePhase < 5 ? 0.02 : -0.02);
+            sidekick.applyForce({
+              x: state.wigglePhase < 5 ? 0.01 : -0.01,
+              y: 0,
+            });
+
+            state.wigglePhase = (state.wigglePhase + 1) % 10;
           }
         }
       } else {
         state.throwState = 'calm';
+
+        if (state.sidekickAngleRestore) {
+          state.sidekickAngleRestore.stop();
+          delete state.sidekickAngleRestore;
+        }
       }
       break;
     case 'hold':
@@ -313,22 +347,23 @@ function updateHero() {
         state.throwState = 'throw';
 
         // recreate a new sidekick because re-adding to
-        // physics seems unusual
+        // physics seems unsupported
         sidekick.destroy();
 
         sidekick = state.sidekick = createSidekick(hero.x, hero.y);
 
         sidekick.applyForce({
-          x: 1,
+          x: 0.75,
           y: 0,
         });
 
         game.time.addEvent({
-          delay: 1000,
+          delay: 200,
           callback: () => {
             state.throwState = 'calm';
           },
         });
+
         // ignore collisions with player for some amount of
         // time?
         //
