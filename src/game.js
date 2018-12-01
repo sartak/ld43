@@ -361,7 +361,8 @@ function collisionStart(event) {
     }
 
     const isEnemy = enemies.find(enemy => (enemy === a || enemy === b));
-    if (isEnemy && (a === sidekick || b === sidekick)) {
+    const isPlayer = [hero, sidekick].find(p => (p === a || p === b));
+    if (isEnemy && isPlayer) {
       a.currentHP -= 10;
       b.currentHP -= 10;
 
