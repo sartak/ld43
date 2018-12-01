@@ -104,7 +104,7 @@ function createHero(x, y) {
   };
 
   updateCachedVelocityFor(hero);
-  createHpBar(hero);
+  createHpBar(hero, 200);
 
   return hero;
 }
@@ -116,7 +116,7 @@ function createSidekick(x, y, isInitial) {
 
   if (isInitial) {
     updateCachedVelocityFor(sidekick);
-    createHpBar(sidekick);
+    createHpBar(sidekick, 300);
   }
 
   sidekick.name = 'sidekick';
@@ -128,6 +128,7 @@ function replaceSidekick(existing) {
   const replacement = createSidekick(existing.x, existing.y, false);
 
   replacement.hpBar = existing.hpBar;
+  replacement.previousHP = existing.previousHP;
   replacement.currentHP = existing.currentHP;
   replacement.maxHP = existing.maxHP;
   replacement.cachedVelocity = existing.cachedVelocity;
@@ -137,7 +138,7 @@ function replaceSidekick(existing) {
   return replacement;
 }
 
-function createHpBar(owner) {
+function createHpBar(owner, maxHP) {
   const { game } = state;
   const { x, y } = owner;
 
@@ -148,11 +149,13 @@ function createHpBar(owner) {
     border,
   };
 
+  fill.setCrop(1, 1, fill.width - 2, fill.height - 2);
+  fill.tint = greenToRedFade(1);
+
   border.tint = 0;
 
   owner.hpBar = hpBar;
-  owner.currentHP = 100;
-  owner.maxHP = 100;
+  owner.currentHP = owner.previousHP = owner.maxHP = maxHP;
 
   return hpBar;
 }
@@ -164,7 +167,7 @@ function createEnemy(type, x, y) {
   const enemy = game.matter.add.sprite(x, y, enemyId, null, { shape: physicsShapes[enemyId] });
 
   updateCachedVelocityFor(enemy);
-  createHpBar(enemy);
+  createHpBar(enemy, 100);
 
   return enemy;
 }
@@ -189,7 +192,8 @@ function greenToRedFade(fraction) {
 }
 
 function updateHpBarFor(owner) {
-  const { currentHP, maxHP, hpBar } = owner;
+  const { game } = state;
+  const { previousHP, currentHP, maxHP, hpBar } = owner;
   const { fill, border } = hpBar;
   // respect rotation? offset?
   border.x = owner.x;
@@ -197,16 +201,33 @@ function updateHpBarFor(owner) {
   fill.x = owner.x;
   fill.y = owner.y - owner.height * 0.75;
 
-  const percentHP = currentHP / maxHP;
-  fill.setCrop(1, 1, fill.width * percentHP - 2, fill.height - 2);
-  fill.tint = greenToRedFade(percentHP);
+  // tween em if you got em
+  if (previousHP !== currentHP) {
+    if (fill.tween) {
+      fill.tween.stop();
+    }
+
+    fill.tween = game.tweens.addCounter({
+      from: fill.tween ? fill.tween.getValue() : previousHP,
+      to: currentHP,
+      duration: 500,
+      ease: 'Cubic.easeInOut',
+      onUpdate: () => {
+        const percentHP = fill.tween.getValue() / maxHP;
+        fill.setCrop(1, 1, fill.width * percentHP - 2, fill.height - 2);
+        fill.tint = greenToRedFade(percentHP);
+      },
+    });
+
+    owner.previousHP = currentHP;
+  }
 }
 
 function updateEnemy(enemy) {
   updateCachedVelocityFor(enemy);
   updateHpBarFor(enemy);
 
-  if (enemy.currentHP < 0) {
+  if (enemy.currentHP <= 0) {
     removeEnemy(enemy);
   }
 }
@@ -379,16 +400,13 @@ function collisionStart(event) {
     const isEnemy = enemies.find(enemy => (enemy === a || enemy === b));
     const isPlayer = [hero, sidekick].find(p => (p === a || p === b));
     if (isEnemy && isPlayer) {
-      a.currentHP -= 10;
-      b.currentHP -= 10;
-
       const { Vector } = Phaser.Physics.Matter.Matter;
       const aMomentum = Vector.mult(a.cachedVelocity, a.body.mass);
       const bMomentum = Vector.mult(b.cachedVelocity, b.body.mass);
       const relativeMomentum = Vector.sub(aMomentum, bMomentum);
-      const impact = Math.sqrt(Vector.magnitude(relativeMomentum));
-      a.currentHP -= impact;
-      b.currentHP -= impact;
+      const impact = Vector.magnitude(relativeMomentum);
+      a.currentHP = Math.max(0, a.currentHP - impact / 5);
+      b.currentHP = Math.max(0, b.currentHP - impact / 5);
     }
   });
 }
