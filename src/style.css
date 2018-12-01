@@ -70,3 +70,13 @@ body {
 .game-metadata a {
   text-decoration: none;
 }
+
+.game-info .game-controls {
+  width: 48%;
+  float: left;
+}
+
+.game-info .game-metadata {
+  width: 48%;
+  float: right;
+}

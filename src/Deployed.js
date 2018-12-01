@@ -9,7 +9,28 @@ export default class Deployed extends Component<{}> {
     return (
       <div className="deployed">
         <Engine />
-        <GameMetadata />
+        <div className="game-info">
+          <GameControls />
+          <GameMetadata />
+        </div>
+      </div>
+    );
+  }
+}
+
+class GameControls extends Component<{}> {
+  render() {
+    return (
+      <div className="game-controls">
+        <p>
+          controls:
+          <ul>
+            <li>z: pickup, throw</li>
+            <li>↑: jump</li>
+            <li>←: left</li>
+            <li>→: right</li>
+          </ul>
+        </p>
       </div>
     );
   }
@@ -45,15 +66,6 @@ class GameMetadata extends Component<{}> {
           <a className="url" href="https://github.com/sartak/LD43">
             github.com/sartak/LD43
           </a>
-        </p>
-        <p>
-          controls:
-          <ul>
-            <li>z: pickup, throw</li>
-            <li>↑: jump</li>
-            <li>←: left</li>
-            <li>→: right</li>
-          </ul>
         </p>
       </div>
     );
