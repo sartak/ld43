@@ -79,7 +79,7 @@ function preload() {
   game.load.text('level-1', level1Map);
 }
 
-function createHero({ x, y }) {
+function createHero({ x, y }, isInitial) {
   const { game, matter } = state;
 
   const hero = matter.add.sprite(0, 0, 'hero', null);
@@ -114,8 +114,10 @@ function createHero({ x, y }) {
     ground: false,
   };
 
-  updateCachedVelocityFor(hero);
-  createHpBar(hero, 200);
+  if (isInitial) {
+    updateCachedVelocityFor(hero);
+    createHpBar(hero, 200);
+  }
 
   return hero;
 }
@@ -236,7 +238,7 @@ function updateHpBarFor(owner) {
 }
 
 function updateEnemy(enemy) {
-  const { hero, waveEnemies } = state;
+  const { hero, waveEnemies, game } = state;
 
   updateCachedVelocityFor(enemy);
   updateHpBarFor(enemy);
@@ -246,7 +248,13 @@ function updateEnemy(enemy) {
     return;
   }
 
+  const hasOnscreenEnemy = waveEnemies.find(e => e.x < game.cameras.main.scrollX + config.width + 100);
+
   if (waveEnemies.find(e => e === enemy)) {
+    if (!hasOnscreenEnemy) {
+      return;
+    }
+
     const dx = hero.x - enemy.x;
     if (dx < -10) {
       enemy.applyForce({
@@ -429,7 +437,7 @@ function create() {
 
   // +20 for a little bit of dynamism on load
   const characterY = 20 + config.height - (config.characterHeight/2);
-  const hero = state.hero = createHero(state.initialHeroPosition);
+  const hero = state.hero = createHero(state.initialHeroPosition, true);
 
   const sidekick = state.sidekick = createSidekick(state.initialSidekickPosition, true);
 
@@ -510,7 +518,7 @@ function collisionStart(event) {
 
     const isEnemy = enemies.find(enemy => (enemy === a || enemy === b));
     const isPlayer = [hero, sidekick].find(p => (p === a || p === b));
-    if (isEnemy && isPlayer) {
+    if (isEnemy && isPlayer && !a.isRespawning && !b.isRespawning) {
       const { Vector } = Phaser.Physics.Matter.Matter;
       const aMomentum = Vector.mult(a.cachedVelocity, a.body.mass);
       const bMomentum = Vector.mult(b.cachedVelocity, b.body.mass);
@@ -610,6 +618,54 @@ function updateCameraAndBounds() {
   state.sky.x = state.sky.width / 2 + leftBound * (state.sky.width / (level.width - config.width));
 }
 
+function respawnIfNeeded(character) {
+  const { game } = state;
+
+  if (character.currentHP > 0) {
+    return;
+  }
+
+  if (character.isRespawnBeginning) {
+    return;
+  }
+
+  game.tweens.add({
+    targets: character,
+    alpha: 0,
+    duration: 1000,
+    onComplete: () => {
+      character.y = state.ceiling.position.y + character.height / 2;
+      character.x = game.cameras.main.scrollX + 64;
+      character.isRespawnBeginning = false;
+      character.currentHP = character.maxHP;
+      character.setVelocityX(0);
+      character.setVelocityY(0);
+
+      if (character === state.sidekick) {
+        character.isRespawning = false;
+      }
+
+      game.tweens.add({
+        targets: character,
+        alpha: 1,
+        duration: 300,
+      });
+
+      game.time.addEvent({
+        delay: 1000,
+        callback: () => {
+          character.setVelocityY(10);
+        },
+      });
+    },
+  });
+
+  character.isRespawnBeginning = true;
+  character.isRespawning = true;
+  character.setVelocityX(0);
+  character.setVelocityY(0);
+}
+
 function updateSidekick() {
   const { game, hero, keys } = state;
   let { sidekick } = state;
@@ -623,6 +679,11 @@ function updateSidekick() {
 
   updateCachedVelocityFor(sidekick);
   updateHpBarFor(sidekick);
+  respawnIfNeeded(sidekick);
+
+  if (sidekick.isRespawnBeginning) {
+    return;
+  }
 
   const zDownStart = Phaser.Input.Keyboard.JustDown(keys.Z);
   state.zDown = keys.Z.isDown;
@@ -729,6 +790,15 @@ function updateHero() {
 
   updateCachedVelocityFor(hero);
   updateHpBarFor(hero);
+  respawnIfNeeded(hero);
+
+  if (hero.isRespawning) {
+    if (hero.touching.bottom && !hero.isRespawnBeginning) {
+      game.cameras.main.shake(100, 0.03);
+      hero.isRespawning = false;
+    }
+    return;
+  }
 
   const { velocity } = hero.body;
   if (cursors.left.isDown) {
@@ -748,6 +818,7 @@ function updateHero() {
       y: 0,
     });
   }
+
   if (hero.touching.bottom && cursors.up.isDown) {
     hero.applyForce({
       x: 0,
