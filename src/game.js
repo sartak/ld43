@@ -44,6 +44,7 @@ const state : any = {
   keys: {},
   throwState: 'calm',
   wigglePhase: 0,
+  facingRight: true,
 };
 
 if (DEBUG) {
@@ -119,6 +120,32 @@ function createEnemy(type, x, y) {
   return enemy;
 }
 
+function createWall(isRight, x, y) {
+  const { game, matter } = state;
+
+  const { vertices } = physicsShapes.wall.fixtures[0];
+  if (isRight) {
+    vertices[0][0].x = 100;
+    vertices[0][1].x = 100;
+    vertices[0][2].x = 0;
+    vertices[0][3].x = 0;
+  } else {
+    vertices[0][0].x = 10;
+    vertices[0][1].x = 10;
+    vertices[0][2].x = -90;
+    vertices[0][3].x = -90;
+  }
+
+  const { Body, Bodies } = Phaser.Physics.Matter.Matter;
+
+  const wall = matter.add.sprite(x, y, 'wall', null, { shape: physicsShapes.wall });
+  if (isRight) {
+    wall.setFlipX(true);
+  }
+
+  return wall;
+}
+
 function create() {
   const { game } = state;
   const { matter } = game;
@@ -130,9 +157,8 @@ function create() {
   const ground = state.ground = matter.add.sprite(config.levelWidth / 2, config.height - (config.groundHeight/2), 'ground', null, { shape: physicsShapes.ground }).setScale(3);
   ground.name = 'ground';
 
-  const leftWall = state.leftWall = matter.add.sprite(5, 400, 'wall', null, { shape: physicsShapes.wall });
-  const rightWall = state.rightWall = matter.add.sprite(config.levelWidth - 5, 400, 'wall', null, { shape: physicsShapes.wall });
-  rightWall.setFlipX(true);
+  const leftWall = state.leftWall = createWall(false, -40, 400);
+  const rightWall = state.rightWall = createWall(true, config.levelWidth + 40, 400);
 
   // +20 for a little bit of dynamism on load
   const characterY = 20 + config.height - (config.characterHeight/2);
@@ -239,8 +265,8 @@ function update() {
 
   game.cameras.main.setBounds(leftBound, 0, config.levelWidth - leftBound, 1080 * 2);
 
-  leftWall.x = Math.max(leftWall.width / 2, leftBound - leftWall.width / 2);
-  rightWall.x = Math.min(config.levelWidth - rightWall.width / 2, rightBound + rightWall.width / 2);
+  leftWall.x = Math.max(-40, leftBound - 50);
+  rightWall.x = Math.min(config.levelWidth + 40, rightBound + 50);
 
   // parallax should depend on sky width and level width
   // worldView.x = 0 means we show sky's left border
@@ -254,6 +280,7 @@ function updateHero() {
 
   const { velocity } = hero.body;
   if (cursors.left.isDown) {
+    state.facingRight = false;
     hero.applyForce({
       x: -0.1,
       y: 0,
@@ -261,6 +288,7 @@ function updateHero() {
   }
 
   if (cursors.right.isDown) {
+    state.facingRight = true;
     hero.applyForce({
       x: 0.1,
       y: 0,
@@ -353,7 +381,7 @@ function updateHero() {
         sidekick = state.sidekick = createSidekick(hero.x, hero.y);
 
         sidekick.applyForce({
-          x: 0.75,
+          x: state.facingRight ? 0.75 : -0.75,
           y: 0,
         });
 
