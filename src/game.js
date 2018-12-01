@@ -461,7 +461,7 @@ function updateSidekick() {
         const dy = hero.y - sidekick.y;
         const tractable = dx*dx + dy*dy < 200*200;
         if (tractable) {
-          // tractor beam towards player
+          // tractor beam towards hero
           // apply a force vector based on the angle
           sidekick.applyForce({
             x: dx < 0 ? -0.03 : 0.03,
@@ -518,11 +518,6 @@ function updateSidekick() {
             state.throwState = 'calm';
           },
         });
-
-        // ignore collisions with player for some amount of
-        // time?
-        //
-        // throw
       }
       break;
     }
