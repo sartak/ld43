@@ -161,14 +161,14 @@ function createHpBar(owner, maxHP) {
   return hpBar;
 }
 
-function createEnemy(type, x, y) {
+function createEnemy({ type, x, y, hp }) {
   const { game } = state;
   const enemyId = `enemy-${type}`;
 
   const enemy = game.matter.add.sprite(x, y, enemyId, null, { shape: physicsShapes[enemyId] });
 
   updateCachedVelocityFor(enemy);
-  createHpBar(enemy, 100);
+  createHpBar(enemy, hp);
 
   return enemy;
 }
@@ -339,11 +339,6 @@ function create() {
   // limit the amount of useless scrolling
   //     game.camera.deadzone = new Phaser.Rectangle(100, 100, 600, 400);
 
-  for (let i = 0; i < 4; ++i) {
-    const enemy = createEnemy('a', Phaser.Math.Between(300, 400) + 100 * i, characterY);
-    state.enemies.push(enemy);
-  }
-
   state.cursors = game.input.keyboard.createCursorKeys();
 
   if (config.debug) {
@@ -457,22 +452,46 @@ function collisionEnd(event) {
 
 // parameter t is milliseconds since load
 function update() {
-  const { enemies } = state;
+  const { enemies, game, level } = state;
 
   updateHero();
   updateSidekick();
   enemies.forEach(enemy => updateEnemy(enemy));
 
+  if (enemies.length === 0) {
+    delete state.x_lock;
+    delete state.camera_lock;
+  }
+
   updateCameraAndBounds();
+
+  if (level.waves.length && game.cameras.main.scrollX > level.waves[0].x_spawn) {
+    spawnWave(level.waves.shift());
+  }
+}
+
+function spawnWave({ x_lock, enemies }) {
+  state.x_lock = x_lock;
+  for (const spec of enemies) {
+    const enemy = createEnemy(spec);
+    state.enemies.push(enemy);
+  }
 }
 
 function updateCameraAndBounds() {
-  const { level, game, ground, ceiling, leftWall, rightWall } = state;
+  const { level, x_lock, camera_lock, game, ground, ceiling, leftWall, rightWall } = state;
 
-  const leftBound = Math.min(game.cameras.main.scrollX, level.width - config.width);
+  let leftBound = Math.min(game.cameras.main.scrollX, level.width - config.width);
+
+  if (x_lock && (leftBound > x_lock || camera_lock)) {
+    leftBound = game.cameras.main.scrollX = x_lock;
+    state.camera_lock = true;
+    game.cameras.main.setBounds(leftBound, 0, 0, 0);
+  } else {
+    game.cameras.main.setBounds(leftBound, 0, level.width - leftBound, 0);
+  }
+
   const rightBound = leftBound + config.width;
-
-  game.cameras.main.setBounds(leftBound, 0, level.width - leftBound, 1080 * 2);
 
   Phaser.Physics.Matter.Matter.Body.setPosition(ceiling, {
     x: 400 + leftBound,

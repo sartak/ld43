@@ -1,9 +1,42 @@
 {
   "background": "sky",
   "width": 2400,
-  "waves": {
-    "enemies": [],
-    "x_spawn": 0,
-    "x_lock": 0
-  }
+  "waves": [
+    {
+      "enemies": [
+        {
+          "type": "a",
+          "x": 900,
+          "y": 500,
+          "hp": 100
+        }
+      ],
+      "x_spawn": 100,
+      "x_lock": 390
+    },
+    {
+      "enemies": [
+        {
+          "type": "a",
+          "x": 1400,
+          "y": 500,
+          "hp": 100
+        },
+        {
+          "type": "a",
+          "x": 1500,
+          "y": 500,
+          "hp": 100
+        },
+        {
+          "type": "a",
+          "x": 1600,
+          "y": 500,
+          "hp": 100
+        }
+      ],
+      "x_spawn": 800,
+      "x_lock": 1400
+    }
+  ]
 }
