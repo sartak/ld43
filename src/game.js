@@ -75,13 +75,14 @@ function createHero(x, y) {
   const { width: w, height: h } = hero;
 
   const sensors = hero.sensors = {
-    b: Bodies.rectangle(0, h * 0.5 + 2, w * 0.5, 2, { isSensor: true }),
-    l: Bodies.rectangle(-w * 0.5, 0, 2, h * 0.5, { isSensor: true }),
-    r: Bodies.rectangle(w * 0.5, 0, 2, h * 0.5, { isSensor: true }),
+    t: Bodies.rectangle(0, -h * 0.5, w, 2, { isSensor: true }),
+    b: Bodies.rectangle(0, h * 0.5 + 2, w, 2, { isSensor: true }),
+    l: Bodies.rectangle(-w * 0.5, 0, 2, h, { isSensor: true }),
+    r: Bodies.rectangle(w * 0.5, 0, 2, h, { isSensor: true }),
   };
 
   const compoundBody = Body.create({
-    parts: [hero.body, sensors.b, sensors.l, sensors.r],
+    parts: [hero.body, sensors.t, sensors.b, sensors.l, sensors.r],
     frictionStatic: 0,
     frictionAir: 0.02,
     friction: 0.1,
@@ -107,6 +108,8 @@ function createSidekick(x, y) {
   const { game } = state;
 
   const sidekick = game.matter.add.sprite(x, y, 'sidekick', null, { shape: physicsShapes.sidekick });
+
+  sidekick.name = 'sidekick';
 
   return sidekick;
 }
@@ -204,51 +207,75 @@ function create() {
   });
 
   game.matter.world.on('collisionstart', (event) => {
-    event.pairs.forEach(({ bodyA, bodyB, separation }) => {
-      const a = bodyA.gameObject;
-      const b = bodyB.gameObject;
-
-      if (bodyA.id === hero.sensors.l.id || bodyB.id === hero.sensors.l.id) {
-        hero.touching.left = true;
-        hero.x += separation + 2;
-      }
-
-      if (bodyA.id === hero.sensors.r.id || bodyB.id === hero.sensors.r.id) {
-        hero.touching.right = true;
-        hero.x -= separation + 2;
-      }
-
-      if (!a || !b) {
-        return;
-      }
-
-      if ((bodyA.id === hero.sensors.b.id || bodyB.id === hero.sensors.b.id)) {
-        hero.touching.bottom = true;
-      }
-    });
+    collisionStart(event);
   });
 
   game.matter.world.on('collisionend', (event) => {
-    event.pairs.forEach(({ bodyA, bodyB, separation }) => {
-      const a = bodyA.gameObject;
-      const b = bodyB.gameObject;
+    collisionEnd(event);
+  });
+}
 
-      if (bodyA.id === hero.sensors.l.id || bodyB.id === hero.sensors.l.id) {
-        hero.touching.left = false;
+function collisionStart(event) {
+  const { hero, sidekick, zDown, matter } = state;
+  event.pairs.forEach(({ bodyA, bodyB, separation }) => {
+    const a = bodyA.gameObject;
+    const b = bodyB.gameObject;
+
+    if (!a || !b) {
+      return;
+    }
+
+    if (bodyA.id === hero.sensors.l.id || bodyB.id === hero.sensors.l.id) {
+      hero.touching.left = true;
+      hero.x += separation + 2;
+    }
+
+    if (bodyA.id === hero.sensors.r.id || bodyB.id === hero.sensors.r.id) {
+      hero.touching.right = true;
+      hero.x -= separation + 2;
+    }
+
+    if ((bodyA.id === hero.sensors.b.id || bodyB.id === hero.sensors.b.id)) {
+      hero.touching.bottom = true;
+    }
+
+    const isSensor = Object.keys(hero.sensors).map(key => hero.sensors[key]).find(sensor => (sensor.id === bodyA.id || sensor.id === bodyB.id));
+    if (isSensor && state.throwState === 'pull' && zDown && (a.name === 'sidekick' || b.name === 'sidekick')) {
+      state.throwState = 'hold';
+
+      if (state.sidekickAngleRestore) {
+        state.sidekickAngleRestore.stop();
+        delete state.sidekickAngleRestore;
       }
 
-      if (bodyA.id === hero.sensors.r.id || bodyB.id === hero.sensors.r.id) {
-        hero.touching.right = false;
-      }
+      sidekick.angle = 0;
+      matter.world.remove(sidekick);
+    }
+  });
+}
 
-      if (!a || !b) {
-        return;
-      }
+function collisionEnd(event) {
+  const { hero } = state;
 
-      if ((bodyA.id === hero.sensors.b.id || bodyB.id === hero.sensors.b.id)) {
-        hero.touching.bottom = false;
-      }
-    });
+  event.pairs.forEach(({ bodyA, bodyB, separation }) => {
+    const a = bodyA.gameObject;
+    const b = bodyB.gameObject;
+
+    if (bodyA.id === hero.sensors.l.id || bodyB.id === hero.sensors.l.id) {
+      hero.touching.left = false;
+    }
+
+    if (bodyA.id === hero.sensors.r.id || bodyB.id === hero.sensors.r.id) {
+      hero.touching.right = false;
+    }
+
+    if (!a || !b) {
+      return;
+    }
+
+    if ((bodyA.id === hero.sensors.b.id || bodyB.id === hero.sensors.b.id)) {
+      hero.touching.bottom = false;
+    }
   });
 }
 
@@ -281,16 +308,18 @@ function updateHero() {
   const { velocity } = hero.body;
   if (cursors.left.isDown) {
     state.facingRight = false;
+    hero.setFlipX(true);
     hero.applyForce({
-      x: -0.1,
+      x: state.throwState === 'hold' ? -0.025 : -0.1,
       y: 0,
     });
   }
 
   if (cursors.right.isDown) {
     state.facingRight = true;
+    hero.setFlipX(false);
     hero.applyForce({
-      x: 0.1,
+      x: state.throwState === 'hold' ? 0.025 : 0.1,
       y: 0,
     });
   }
@@ -302,6 +331,7 @@ function updateHero() {
   }
 
   const zDownStart = Phaser.Input.Keyboard.JustDown(keys.Z);
+  state.zDown = keys.Z.isDown;
 
   switch (state.throwState) {
     default:
@@ -316,47 +346,33 @@ function updateHero() {
       if (keys.Z.isDown) {
         const dx = hero.x - sidekick.x;
         const dy = hero.y - sidekick.y;
-        const dx2dy2 = dx*dx + dy*dy;
-        const holdable = dx2dy2 < 75*75;
-        if (holdable) {
-          state.throwState = 'hold';
+        const tractable = dx*dx + dy*dy < 200*200;
+        if (tractable) {
+          // tractor beam towards player
+          // apply a force vector based on the angle
+          sidekick.applyForce({
+            x: dx < 0 ? -0.03 : 0.03,
+            y: dy < 0 ? -0.03 : 0.03,
+          });
 
-          if (state.sidekickAngleRestore) {
-            state.sidekickAngleRestore.stop();
-            delete state.sidekickAngleRestore;
+          // tween toward zero
+          //
+          if (!state.sidekickAngleRestore) {
+            state.sidekickAngleRestore = game.tweens.add({
+              targets: sidekick,
+              angle: 0,
+              duration: 200,
+            });
           }
-
-          sidekick.angle = 0;
-          matter.world.remove(sidekick);
         } else {
-          const tractable = dx2dy2 < 200*200;
-          if (tractable) {
-            // tractor beam towards player
-            // apply a force vector based on the angle
-            sidekick.applyForce({
-              x: dx < 0 ? -0.03 : 0.03,
-              y: dy < 0 ? -0.03 : 0.03,
-            });
+          // wiggle but don't move
+          sidekick.setAngularVelocity(state.wigglePhase < 5 ? 0.02 : -0.02);
+          sidekick.applyForce({
+            x: state.wigglePhase < 5 ? 0.01 : -0.01,
+            y: 0,
+          });
 
-            // tween toward zero
-            //
-            if (!state.sidekickAngleRestore) {
-              state.sidekickAngleRestore = game.tweens.add({
-                targets: sidekick,
-                angle: 0,
-                duration: 200,
-              });
-            }
-          } else {
-            // wiggle but don't move
-            sidekick.setAngularVelocity(state.wigglePhase < 5 ? 0.02 : -0.02);
-            sidekick.applyForce({
-              x: state.wigglePhase < 5 ? 0.01 : -0.01,
-              y: 0,
-            });
-
-            state.wigglePhase = (state.wigglePhase + 1) % 10;
-          }
+          state.wigglePhase = (state.wigglePhase + 1) % 10;
         }
       } else {
         state.throwState = 'calm';
@@ -367,9 +383,11 @@ function updateHero() {
         }
       }
       break;
-    case 'hold':
-      sidekick.x = hero.x;
-      sidekick.y = hero.y;
+    case 'hold': {
+      let x = hero.x + (state.facingRight ? 10 : -10);
+      const y = hero.y + 10;
+      sidekick.x = x;
+      sidekick.y = y;
 
       if (zDownStart) {
         state.throwState = 'throw';
@@ -378,7 +396,8 @@ function updateHero() {
         // physics seems unsupported
         sidekick.destroy();
 
-        sidekick = state.sidekick = createSidekick(hero.x, hero.y);
+        x += (state.facingRight ? 20 : -20);
+        sidekick = state.sidekick = createSidekick(x, y);
 
         sidekick.applyForce({
           x: state.facingRight ? 0.75 : -0.75,
@@ -398,6 +417,7 @@ function updateHero() {
         // throw
       }
       break;
+    }
     case 'throw':
       break;
   }
