@@ -1,11 +1,14 @@
 /* @flow */
 import Phaser from 'phaser';
 import heroSprite from './assets/hero.png';
+import sidekickSprite from './assets/sidekick.png';
 
 import enemySpriteA from './assets/enemy-a.png';
 
 import skyImage from './assets/sky.png';
+import skyImage2 from './assets/sky-2.png';
 import groundImage from './assets/ground.png';
+import wallImage from './assets/wall.png';
 
 import physicsShapes from './assets/physics.json';
 
@@ -50,9 +53,12 @@ export default function startGame() {
 function preload() {
   const game = state.game = this;
   game.load.image('hero', heroSprite);
+  game.load.image('sidekick', sidekickSprite);
   game.load.image('enemy-a', enemySpriteA);
   game.load.image('sky', skyImage);
+  game.load.image('sky-2', skyImage2);
   game.load.image('ground', groundImage);
+  game.load.image('wall', wallImage);
 }
 
 function createHero(x, y) {
@@ -92,6 +98,14 @@ function createHero(x, y) {
   return hero;
 }
 
+function createSidekick(x, y) {
+  const { game } = state;
+
+  const sidekick = game.matter.add.sprite(x, y, 'sidekick', null, { shape: physicsShapes.sidekick });
+
+  return sidekick;
+}
+
 function createEnemy(type, x, y) {
   const { game } = state;
   const enemyId = `enemy-${type}`;
@@ -105,22 +119,33 @@ function create() {
   const { game } = state;
   const { matter } = game;
 
-  matter.world.setBounds(0, 0, config.width, config.height);
+  const levelWidth = 800*3;
 
   state.sky = game.add.sprite(400, 300, 'sky');
 
-  const ground = state.ground = matter.add.sprite(400, config.height - (config.groundHeight/2), 'ground', null, { shape: physicsShapes.ground });
+  const ground = state.ground = matter.add.sprite(levelWidth / 2, config.height - (config.groundHeight/2), 'ground', null, { shape: physicsShapes.ground }).setScale(3);
   ground.name = 'ground';
+
+  const leftWall = state.leftWall = matter.add.sprite(5, 400, 'wall', null, { shape: physicsShapes.wall });
+  const rightWall = state.rightWall = matter.add.sprite(levelWidth - 5, 400, 'wall', null, { shape: physicsShapes.wall });
+  rightWall.setFlipX(true);
 
   // +20 for a little bit of dynamism on load
   const characterY = 20 + config.height - (config.characterHeight/2);
-  const hero = state.hero = createHero(100, characterY);
+  const hero = state.hero = createHero(150, characterY);
+
+  const sidekick = state.sidekick = createSidekick(100, characterY);
 
   // target, round pixels for jitter, lerpx, lerpy, offsetx, offsety
   game.cameras.main.startFollow(hero, false, 0.05, 0, 0, 270);
 
+  game.cameras.main.setBounds(0, 0, levelWidth, 1080 * 2);
+
+  // limit the amount of useless scrolling
+  //     game.camera.deadzone = new Phaser.Rectangle(100, 100, 600, 400);
+
   for (let i = 0; i < 4; ++i) {
-    const enemy = createEnemy('a', Phaser.Math.Between(100, 200) + 100 * i, characterY);
+    const enemy = createEnemy('a', Phaser.Math.Between(300, 400) + 100 * i, characterY);
     state.enemies.push(enemy);
   }
 
@@ -187,16 +212,21 @@ function create() {
 
 // parameter t is milliseconds since load
 function update() {
-  const { game } = state;
+  const { game, leftWall } = state;
 
   updateHero();
+
+  const screenWidth = 800;
+  const levelWidth = 800*3;
+  const leftBound = Math.min(game.cameras.main.scrollX, levelWidth - 800);
+  game.cameras.main.setBounds(leftBound, 0, levelWidth - leftBound, 1080 * 2);
+
+  leftWall.x = Math.max(leftWall.width / 2, leftBound - leftWall.width / 2);
 
   // parallax should depend on sky width and level width
   // worldView.x = 0 means we show sky's left border
   // worldView.x = lvl.width means we show sky's right border
-  const levelWidth = 800;
-  const parallax = levelWidth / state.sky.width;
-  state.sky.x = levelWidth / 2 + game.cameras.main.worldView.x * parallax;
+  state.sky.x = state.sky.width / 2 + leftBound * (state.sky.width / (levelWidth - screenWidth));
 }
 
 function updateHero() {
