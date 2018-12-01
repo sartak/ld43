@@ -474,6 +474,9 @@ function updateSidekick() {
   const { game, hero, keys } = state;
   let { sidekick } = state;
 
+  const dx = hero.x - sidekick.x;
+  const dy = hero.y - sidekick.y;
+
   updateCachedVelocityFor(sidekick);
   updateHpBarFor(sidekick);
 
@@ -487,12 +490,18 @@ function updateSidekick() {
     case 'calm':
       if (keys.Z.isDown) {
         state.throwState = 'pull';
+      } else if (sidekick.currentHP / sidekick.maxHP < 0.25) {
+        // crawl away
+        sidekick.applyForce({
+          x: dx < 0 ? 0.002 : -0.002,
+          y: 0,
+        });
+        sidekick.setAngularVelocity(state.wigglePhase < 5 ? 0.01 : -0.01);
+        state.wigglePhase = (state.wigglePhase + 1) % 10;
       }
       break;
     case 'pull':
       if (keys.Z.isDown) {
-        const dx = hero.x - sidekick.x;
-        const dy = hero.y - sidekick.y;
         const tractable = dx*dx + dy*dy < 200*200;
         if (tractable) {
           // tractor beam towards hero
