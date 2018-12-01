@@ -1,6 +1,8 @@
 /* @flow */
 import Phaser from 'phaser';
 import heroSprite from './assets/hero.png';
+import stageImage from './assets/stage.png';
+import physicsShapes from './assets/physics.json';
 
 // SACRIFICES MUST BE MADE
 
@@ -32,12 +34,18 @@ export default function startGame() {
 function preload() {
   const game = state.game = this;
   game.load.image('hero', heroSprite);
+  game.load.image('stage', stageImage);
 }
 
 function create() {
   const { game } = state;
+  const { matter } = game;
 
-  const hero = state.hero = game.add.image(400, 300, 'hero');
+  matter.world.setBounds(0, 0, config.width, config.height);
+
+  game.add.sprite(400, 300, 'stage');
+
+  const hero = state.hero = matter.add.sprite(400, 300, 'hero', null, { shape: physicsShapes.hero });
 
   state.cursors = game.input.keyboard.createCursorKeys();
 }
