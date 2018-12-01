@@ -225,11 +225,31 @@ function updateHpBarFor(owner) {
 }
 
 function updateEnemy(enemy) {
+  const { hero } = state;
+
   updateCachedVelocityFor(enemy);
   updateHpBarFor(enemy);
 
   if (enemy.currentHP <= 0) {
     removeEnemy(enemy);
+    return;
+  }
+
+  const dx = hero.x - enemy.x;
+  if (dx < -10) {
+    enemy.applyForce({
+      x: -0.004,
+      y: 0,
+    });
+    enemy.setAngularVelocity(0.0005);
+  } else if (dx > 10) {
+    enemy.applyForce({
+      x: 0.004,
+      y: 0,
+    });
+    enemy.setAngularVelocity(-0.0005);
+  } else {
+    // attack
   }
 }
 
