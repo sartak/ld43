@@ -8,6 +8,7 @@ import physicsShapes from './assets/physics.json';
 // SACRIFICES MUST BE MADE
 
 const config = {
+  debug: (!process.env.NODE_ENV || process.env.NODE_ENV === 'development'),
   type: Phaser.AUTO,
   parent: 'engine',
   width: 800,
@@ -52,6 +53,15 @@ function create() {
   const hero = state.hero = matter.add.sprite(400, 300, 'hero', null, { shape: physicsShapes.hero });
 
   state.cursors = game.input.keyboard.createCursorKeys();
+
+  if (config.debug) {
+    game.input.keyboard.on('keydown_X', () => {
+      const engine = document.querySelector('#engine canvas');
+      if (engine) {
+        engine.remove();
+      }
+    });
+  }
 }
 
 // parameter t is milliseconds since load
