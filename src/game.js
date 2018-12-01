@@ -149,6 +149,18 @@ function createWall(isRight, x, y) {
   return wall;
 }
 
+function createCeiling() {
+  const { matter } = state;
+
+  const ceiling = matter.add.rectangle(400, -50, 800, 100, {
+    isStatic: true,
+    friction: 0,
+    frictionStatic: 0,
+  });
+
+  return ceiling;
+}
+
 function create() {
   const { game } = state;
   const { matter } = game;
@@ -159,6 +171,8 @@ function create() {
 
   const ground = state.ground = matter.add.sprite(config.levelWidth / 2, config.height - (config.groundHeight/2), 'ground', null, { shape: physicsShapes.ground }).setScale(3);
   ground.name = 'ground';
+
+  const ceiling = state.ceiling = createCeiling();
 
   const leftWall = state.leftWall = createWall(false, -40, 400);
   const rightWall = state.rightWall = createWall(true, config.levelWidth + 40, 400);
@@ -281,7 +295,7 @@ function collisionEnd(event) {
 
 // parameter t is milliseconds since load
 function update() {
-  const { game, leftWall, rightWall } = state;
+  const { game, ceiling, leftWall, rightWall } = state;
 
   updateHero();
 
@@ -291,6 +305,11 @@ function update() {
   const rightBound = leftBound + screenWidth;
 
   game.cameras.main.setBounds(leftBound, 0, config.levelWidth - leftBound, 1080 * 2);
+
+  Phaser.Physics.Matter.Matter.Body.setPosition(ceiling, {
+    x: 400 + leftBound,
+    y: ceiling.position.y 
+  });
 
   leftWall.x = Math.max(-40, leftBound - 50);
   rightWall.x = Math.min(config.levelWidth + 40, rightBound + 50);
