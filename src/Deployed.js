@@ -36,10 +36,8 @@ class GameMetadata extends Component<{}> {
           <a href="https://ldjam.com/events/ludum-dare/43/">
             Ludum Dare 43
           </a>
-          {' '}
-(
-          <em>"Theme TBD!"</em>
-)
+          <br />
+          <em>"Sacrifices must be made"</em>
         </p>
         <p>
           code at

@@ -1,6 +1,8 @@
 /* @flow */
 import Phaser from 'phaser';
 
+// SACRIFICES MUST BE MADE
+
 const config = {
   type: Phaser.AUTO,
   parent: 'engine',
