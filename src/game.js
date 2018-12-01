@@ -1,7 +1,8 @@
 /* @flow */
 import Phaser from 'phaser';
 import heroSprite from './assets/hero.png';
-import stageImage from './assets/stage.png';
+import skyImage from './assets/sky.png';
+import groundImage from './assets/ground.png';
 import physicsShapes from './assets/physics.json';
 
 // SACRIFICES MUST BE MADE
@@ -11,6 +12,7 @@ const config = {
   parent: 'engine',
   width: 800,
   height: 600,
+  groundHeight: 20,
   physics: {
     default: 'matter',
     matter: {
@@ -34,7 +36,8 @@ export default function startGame() {
 function preload() {
   const game = state.game = this;
   game.load.image('hero', heroSprite);
-  game.load.image('stage', stageImage);
+  game.load.image('sky', skyImage);
+  game.load.image('ground', groundImage);
 }
 
 function create() {
@@ -43,13 +46,15 @@ function create() {
 
   matter.world.setBounds(0, 0, config.width, config.height);
 
-  game.add.sprite(400, 300, 'stage');
+  game.add.sprite(400, 300, 'sky');
+  const ground = state.ground = matter.add.sprite(400, config.height - (config.groundHeight/2), 'ground', null, { shape: physicsShapes.ground });
 
   const hero = state.hero = matter.add.sprite(400, 300, 'hero', null, { shape: physicsShapes.hero });
 
   state.cursors = game.input.keyboard.createCursorKeys();
 }
 
+// parameter t is milliseconds since load
 function update() {
   const { hero, cursors } = state;
   if (cursors.left.isDown) {
