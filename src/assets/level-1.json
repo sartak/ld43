@@ -1,0 +1,9 @@
+{
+  "background": "sky",
+  "width": 2400,
+  "waves": {
+    "enemies": [],
+    "x_spawn": 0,
+    "x_lock": 0
+  }
+}

@@ -11,6 +11,8 @@ import groundImage from './assets/ground.png';
 import wallImage from './assets/wall.png';
 import hpbarImage from './assets/hpbar.png';
 
+import level1 from './assets/level-1.json';
+
 import physicsShapes from './assets/physics.json';
 
 // SACRIFICES MUST BE MADE
@@ -21,11 +23,9 @@ const config = {
   debug: DEBUG,
   type: Phaser.AUTO,
   parent: 'engine',
-  levelWidth: 800 * 3,
   width: 800,
   height: 600,
   characterHeight: 100,
-  groundHeight: 20,
   physics: {
     default: 'matter',
     matter: {
@@ -40,6 +40,7 @@ const config = {
 };
 
 const state : any = {
+  level: level1,
   physicsShapes,
   enemies: [],
   keys: {},
@@ -254,6 +255,23 @@ function removeEnemy(enemy) {
   enemy.destroy();
 }
 
+function createGround() {
+  const { game, matter } = state;
+
+  const { vertices } = physicsShapes.ground.fixtures[0];
+  vertices[0][0].y = 100;
+  vertices[0][1].y = 100;
+  vertices[0][2].y = 0;
+  vertices[0][3].y = 0;
+
+  const { Body, Bodies } = Phaser.Physics.Matter.Matter;
+
+  const ground = matter.add.sprite(config.width / 2, config.height + 30, 'ground', null, { shape: physicsShapes.ground });
+  ground.name = 'ground';
+
+  return ground;
+}
+
 function createWall(isRight, x, y) {
   const { game, matter } = state;
 
@@ -283,7 +301,7 @@ function createWall(isRight, x, y) {
 function createCeiling() {
   const { matter } = state;
 
-  const ceiling = matter.add.rectangle(400, -50, 800, 100, {
+  const ceiling = matter.add.rectangle(config.width / 2, -50, config.width, 100, {
     isStatic: true,
     friction: 0,
     frictionStatic: 0,
@@ -293,20 +311,19 @@ function createCeiling() {
 }
 
 function create() {
-  const { game } = state;
+  const { game, level } = state;
   const { matter } = game;
 
   state.matter = matter;
 
-  state.sky = game.add.sprite(400, 300, 'sky');
+  state.sky = game.add.sprite(400, 300, level.background);
 
-  const ground = state.ground = matter.add.sprite(config.levelWidth / 2, config.height - (config.groundHeight/2), 'ground', null, { shape: physicsShapes.ground }).setScale(3);
-  ground.name = 'ground';
+  const ground = state.ground = createGround();
 
   const ceiling = state.ceiling = createCeiling();
 
   const leftWall = state.leftWall = createWall(false, -40, 400);
-  const rightWall = state.rightWall = createWall(true, config.levelWidth + 40, 400);
+  const rightWall = state.rightWall = createWall(true, level.width + 40, 400);
 
   // +20 for a little bit of dynamism on load
   const characterY = 20 + config.height - (config.characterHeight/2);
@@ -317,7 +334,7 @@ function create() {
   // target, round pixels for jitter, lerpx, lerpy, offsetx, offsety
   game.cameras.main.startFollow(hero, false, 0.05, 0, 0, 270);
 
-  game.cameras.main.setBounds(0, 0, config.levelWidth, 1080 * 2);
+  game.cameras.main.setBounds(0, 0, level.width, 1080 * 2);
 
   // limit the amount of useless scrolling
   //     game.camera.deadzone = new Phaser.Rectangle(100, 100, 600, 400);
@@ -450,26 +467,27 @@ function update() {
 }
 
 function updateCameraAndBounds() {
-  const { game, ceiling, leftWall, rightWall } = state;
-  const screenWidth = 800;
+  const { level, game, ground, ceiling, leftWall, rightWall } = state;
 
-  const leftBound = Math.min(game.cameras.main.scrollX, config.levelWidth - screenWidth);
-  const rightBound = leftBound + screenWidth;
+  const leftBound = Math.min(game.cameras.main.scrollX, level.width - config.width);
+  const rightBound = leftBound + config.width;
 
-  game.cameras.main.setBounds(leftBound, 0, config.levelWidth - leftBound, 1080 * 2);
+  game.cameras.main.setBounds(leftBound, 0, level.width - leftBound, 1080 * 2);
 
   Phaser.Physics.Matter.Matter.Body.setPosition(ceiling, {
     x: 400 + leftBound,
     y: ceiling.position.y,
   });
 
+  ground.x = config.width / 2 + leftBound;
+
   leftWall.x = Math.max(-40, leftBound - 50);
-  rightWall.x = Math.min(config.levelWidth + 40, rightBound + 50);
+  rightWall.x = Math.min(level.width + 40, rightBound + 50);
 
   // parallax should depend on sky width and level width
   // worldView.x = 0 means we show sky's left border
   // worldView.x = lvl.width means we show sky's right border
-  state.sky.x = state.sky.width / 2 + leftBound * (state.sky.width / (config.levelWidth - screenWidth));
+  state.sky.x = state.sky.width / 2 + leftBound * (state.sky.width / (level.width - config.width));
 }
 
 function updateSidekick() {
