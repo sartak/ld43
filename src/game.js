@@ -40,6 +40,8 @@ const config = {
 const state : any = {
   physicsShapes,
   enemies: [],
+  keys: {},
+  throwState: 'calm',
 };
 
 if (DEBUG) {
@@ -62,9 +64,9 @@ function preload() {
 }
 
 function createHero(x, y) {
-  const { game } = state;
+  const { game, matter } = state;
 
-  const hero = game.matter.add.sprite(0, 0, 'hero', null);
+  const hero = matter.add.sprite(0, 0, 'hero', null);
 
   const { Body, Bodies } = Phaser.Physics.Matter.Matter;
   const { width: w, height: h } = hero;
@@ -119,6 +121,8 @@ function create() {
   const { game } = state;
   const { matter } = game;
 
+  state.matter = matter;
+
   const levelWidth = 800*3;
 
   state.sky = game.add.sprite(400, 300, 'sky');
@@ -152,7 +156,7 @@ function create() {
   state.cursors = game.input.keyboard.createCursorKeys();
 
   if (config.debug) {
-    game.input.keyboard.on('keydown_X', () => {
+    game.input.keyboard.on('keydown_Q', () => {
       game.scene.stop();
       const engine = document.querySelector('#engine canvas');
       if (engine) {
@@ -160,6 +164,18 @@ function create() {
       }
     });
   }
+
+  ['Z', 'X', 'C'].forEach((code) => {
+    state.keys[code] = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes[code]);
+  });
+
+  game.input.keyboard.on('keydown_Q', () => {
+    game.scene.stop();
+    const engine = document.querySelector('#engine canvas');
+    if (engine) {
+      engine.remove();
+    }
+  });
 
   game.matter.world.on('collisionstart', (event) => {
     event.pairs.forEach(({ bodyA, bodyB, separation }) => {
@@ -230,7 +246,8 @@ function update() {
 }
 
 function updateHero() {
-  const { hero, cursors } = state;
+  const { game, matter, hero, cursors, keys } = state;
+  let { sidekick } = state;
 
   const { velocity } = hero.body;
   if (cursors.left.isDown) {
@@ -246,12 +263,80 @@ function updateHero() {
       y: 0,
     });
   }
-
   if (hero.touching.bottom && cursors.up.isDown) {
     hero.applyForce({
       x: 0,
       y: -0.25,
     });
+  }
+
+  const zDownStart = Phaser.Input.Keyboard.JustDown(keys.Z);
+
+  switch (state.throwState) {
+    default:
+      alert(`unexpected throwState: ${state.throwState}`);
+      break;
+
+    case 'calm':
+      if (keys.Z.isDown) {
+        state.throwState = 'pull';
+      }
+      break;
+    case 'pull':
+      if (keys.Z.isDown) {
+        const holdable = true;
+        if (holdable) {
+          state.throwState = 'hold';
+          matter.world.remove(sidekick);
+        } else {
+          const tractable = true;
+          if (tractable) {
+            // tractor beam towards player
+            sidekick.applyForce({
+            });
+
+            // tween toward zero
+            sidekick.angle = 0;
+          } else {
+            // wiggle but don't move
+          }
+        }
+      } else {
+        state.throwState = 'calm';
+      }
+      break;
+    case 'hold':
+      sidekick.x = hero.x;
+      sidekick.y = hero.y;
+
+      if (zDownStart) {
+        state.throwState = 'throw';
+
+        // recreate a new sidekick because re-adding to
+        // physics seems unusual
+        sidekick.destroy();
+
+        sidekick = state.sidekick = createSidekick(hero.x, hero.y);
+
+        sidekick.applyForce({
+          x: 1,
+          y: 0,
+        });
+
+        game.time.addEvent({
+          delay: 1000,
+          callback: () => {
+            state.throwState = 'calm';
+          },
+        });
+        // ignore collisions with player for some amount of
+        // time?
+        //
+        // throw
+      }
+      break;
+    case 'throw':
+      break;
   }
 
   if (velocity.x > 5) hero.setVelocityX(5);
