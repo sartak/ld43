@@ -56,6 +56,17 @@ const enemyDefaults = {
   a: { hp: 100 },
 };
 
+const whiteColor = {
+  r: 255,
+  g: 255,
+  b: 255,
+};
+const redColor = {
+  r: 255,
+  g: 0,
+  b: 0,
+};
+
 if (DEBUG) {
   window.state = state;
 }
@@ -538,8 +549,43 @@ function collisionStart(event) {
       const bMomentum = Vector.mult(b.cachedVelocity, b.body.mass);
       const relativeMomentum = Vector.sub(aMomentum, bMomentum);
       const impact = Vector.magnitude(relativeMomentum);
-      a.currentHP = Math.max(0, a.currentHP - impact / 5);
-      b.currentHP = Math.max(0, b.currentHP - impact / 5);
+      const damage = impact / 5;
+      const duration = impact;
+      a.currentHP = Math.max(0, a.currentHP - damage);
+      b.currentHP = Math.max(0, b.currentHP - damage);
+
+      [a, b].forEach((character) => {
+        const percent = damage / character.maxHP;
+        let start = 0;
+        const end = damage * 3;
+        if (character.damageTween) {
+          start = character.damageTween.getValue();
+          character.damageTween.stop();
+        }
+
+        character.damageTween = game.tweens.addCounter({
+          from: start,
+          to: end,
+          duration,
+          onUpdate: () => {
+            const tint = Phaser.Display.Color.Interpolate.ColorWithColor(whiteColor, redColor, 100, character.damageTween.getValue());
+            const color = Phaser.Display.Color.ObjectToColor(tint).color;
+            character.setTint(color);
+          },
+          onComplete: () => {
+            character.damageTween = game.tweens.addCounter({
+              from: end,
+              to: 0,
+              duration,
+              onUpdate: () => {
+                const tint = Phaser.Display.Color.Interpolate.ColorWithColor(whiteColor, redColor, 100, character.damageTween.getValue());
+                const color = Phaser.Display.Color.ObjectToColor(tint).color;
+                character.setTint(color);
+              },
+            });
+          },
+        });
+      });
 
       game.cameras.main.shake(impact/2, 0.00005*impact);
     }
