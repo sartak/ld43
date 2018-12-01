@@ -24,7 +24,7 @@ const config = {
   physics: {
     default: 'matter',
     matter: {
-      debug: false,
+      debug: DEBUG,
     },
   },
   scene: {
@@ -107,7 +107,8 @@ function create() {
 
   matter.world.setBounds(0, 0, config.width, config.height);
 
-  game.add.sprite(400, 300, 'sky');
+  state.sky = game.add.sprite(400, 300, 'sky');
+
   const ground = state.ground = matter.add.sprite(400, config.height - (config.groundHeight/2), 'ground', null, { shape: physicsShapes.ground });
   ground.name = 'ground';
 
@@ -186,7 +187,16 @@ function create() {
 
 // parameter t is milliseconds since load
 function update() {
+  const { game } = state;
+
   updateHero();
+
+  // parallax should depend on sky width and level width
+  // worldView.x = 0 means we show sky's left border
+  // worldView.x = lvl.width means we show sky's right border
+  const levelWidth = 800;
+  const parallax = levelWidth / state.sky.width;
+  state.sky.x = levelWidth / 2 + game.cameras.main.worldView.x * parallax;
 }
 
 function updateHero() {
