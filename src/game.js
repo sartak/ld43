@@ -559,8 +559,9 @@ function updateSidekick() {
               duration: 200,
             });
           }
-        } else {
-          // wiggle but don't move
+        } else if (sidekick.currentHP / sidekick.maxHP >= 0.5) {
+          // wiggle but don't move. and only when he's not
+          // totally afraid of hero
           sidekick.setAngularVelocity(state.wigglePhase < 5 ? 0.02 : -0.02);
           sidekick.applyForce({
             x: state.wigglePhase < 5 ? 0.01 : -0.01,
