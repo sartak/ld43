@@ -140,10 +140,20 @@ function replaceSidekick(existing) {
 function createHpBar(owner) {
   const { game } = state;
   const { x, y } = owner;
-  const hpBar = game.add.sprite(x, y, 'hpbar');
+
+  const border = game.add.sprite(x, y, 'hpbar');
+  const fill = game.add.sprite(x, y, 'hpbar');
+  const hpBar = {
+    fill,
+    border,
+  };
+
+  border.tint = 0;
+
   owner.hpBar = hpBar;
   owner.currentHP = 100;
   owner.maxHP = 100;
+
   return hpBar;
 }
 
@@ -180,12 +190,16 @@ function greenToRedFade(fraction) {
 
 function updateHpBarFor(owner) {
   const { currentHP, maxHP, hpBar } = owner;
+  const { fill, border } = hpBar;
   // respect rotation? offset?
-  hpBar.x = owner.x;
-  hpBar.y = owner.y - owner.height * 0.75;
+  border.x = owner.x;
+  border.y = owner.y - owner.height * 0.75;
+  fill.x = owner.x;
+  fill.y = owner.y - owner.height * 0.75;
+
   const percentHP = currentHP / maxHP;
-  hpBar.setCrop(0, 0, hpBar.width * percentHP, hpBar.height);
-  hpBar.tint = greenToRedFade(percentHP);
+  fill.setCrop(1, 1, fill.width * percentHP - 2, fill.height - 2);
+  fill.tint = greenToRedFade(percentHP);
 }
 
 function updateEnemy(enemy) {
@@ -206,7 +220,9 @@ function updateCachedVelocityFor(character) {
 
 function removeHpBarFor(owner) {
   const { hpBar } = owner;
-  hpBar.destroy();
+  const { fill, border } = hpBar;
+  fill.destroy();
+  border.destroy();
 }
 
 function removeEnemy(enemy) {
