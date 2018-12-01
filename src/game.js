@@ -361,7 +361,7 @@ function create() {
 }
 
 function collisionStart(event) {
-  const { hero, sidekick, zDown, matter, enemies } = state;
+  const { hero, sidekick, zDown, matter, enemies, game } = state;
   event.pairs.forEach(({ bodyA, bodyB, separation }) => {
     const a = bodyA.gameObject;
     const b = bodyB.gameObject;
@@ -407,6 +407,8 @@ function collisionStart(event) {
       const impact = Vector.magnitude(relativeMomentum);
       a.currentHP = Math.max(0, a.currentHP - impact / 5);
       b.currentHP = Math.max(0, b.currentHP - impact / 5);
+
+      game.cameras.main.shake(impact/2, 0.00005*impact);
     }
   });
 }
