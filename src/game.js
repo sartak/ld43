@@ -103,6 +103,7 @@ function createHero(x, y) {
     ground: false,
   };
 
+  updateCachedVelocityFor(hero);
   createHpBar(hero);
 
   return hero;
@@ -114,6 +115,7 @@ function createSidekick(x, y, isInitial) {
   const sidekick = game.matter.add.sprite(x, y, 'sidekick', null, { shape: physicsShapes.sidekick });
 
   if (isInitial) {
+    updateCachedVelocityFor(sidekick);
     createHpBar(sidekick);
   }
 
@@ -128,6 +130,7 @@ function replaceSidekick(existing) {
   replacement.hpBar = existing.hpBar;
   replacement.currentHP = existing.currentHP;
   replacement.maxHP = existing.maxHP;
+  replacement.cachedVelocity = existing.cachedVelocity;
 
   existing.destroy();
 
@@ -150,6 +153,7 @@ function createEnemy(type, x, y) {
 
   const enemy = game.matter.add.sprite(x, y, enemyId, null, { shape: physicsShapes[enemyId] });
 
+  updateCachedVelocityFor(enemy);
   createHpBar(enemy);
 
   return enemy;
