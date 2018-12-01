@@ -11,7 +11,10 @@ import groundImage from './assets/ground.png';
 import wallImage from './assets/wall.png';
 import hpbarImage from './assets/hpbar.png';
 
-import level1 from './assets/level-1.json';
+import level1Meta from './assets/level-1.json';
+import level1Map from './assets/level-1.map';
+
+import blockA from './assets/block-a.png';
 
 import physicsShapes from './assets/physics.json';
 
@@ -40,13 +43,17 @@ const config = {
 };
 
 const state : any = {
-  level: level1,
+  level: level1Meta,
   physicsShapes,
   enemies: [],
   keys: {},
   throwState: 'calm',
   wigglePhase: 0,
   facingRight: true,
+};
+
+const enemyDefaults = {
+  a: { hp: 100 },
 };
 
 if (DEBUG) {
@@ -67,9 +74,12 @@ function preload() {
   game.load.image('ground', groundImage);
   game.load.image('wall', wallImage);
   game.load.image('hpbar', hpbarImage);
+  game.load.image('block-a', blockA);
+
+  game.load.text('map', level1Map);
 }
 
-function createHero(x, y) {
+function createHero({ x, y }) {
   const { game, matter } = state;
 
   const hero = matter.add.sprite(0, 0, 'hero', null);
@@ -110,7 +120,7 @@ function createHero(x, y) {
   return hero;
 }
 
-function createSidekick(x, y, isInitial) {
+function createSidekick({ x, y }, isInitial) {
   const { game } = state;
 
   const sidekick = game.matter.add.sprite(x, y, 'sidekick', null, { shape: physicsShapes.sidekick });
@@ -126,7 +136,8 @@ function createSidekick(x, y, isInitial) {
 }
 
 function replaceSidekick(existing) {
-  const replacement = createSidekick(existing.x, existing.y, false);
+  const replacement = createSidekick({ x: existing.x,
+    y: existing.y }, false);
 
   replacement.hpBar = existing.hpBar;
   replacement.previousHP = existing.previousHP;
@@ -286,7 +297,7 @@ function createGround() {
 
   const { Body, Bodies } = Phaser.Physics.Matter.Matter;
 
-  const ground = matter.add.sprite(config.width / 2, config.height + 30, 'ground', null, { shape: physicsShapes.ground });
+  const ground = matter.add.sprite(config.width / 2, config.height + 50, 'ground', null, { shape: physicsShapes.ground });
   ground.name = 'ground';
 
   return ground;
@@ -330,6 +341,50 @@ function createCeiling() {
   return ceiling;
 }
 
+function createMap() {
+  const { matter, game, level } = state;
+
+  const map = state.map = game.cache.text.get('map');
+
+  const rows = map.split('\n');
+  rows.forEach((row, r) => {
+    const y = r * 32 - 8; // 8 because doesnt cleanly divide
+    row.split('').forEach((spec, c) => {
+      const x = c * 32;
+
+      if (spec === '.') {
+        return;
+      }
+
+      if (spec === '@') {
+        state.initialHeroPosition = {
+          x,
+          y,
+        };
+      } else if (spec === '$') {
+        state.initialSidekickPosition = {
+          x,
+          y,
+        };
+      } else if (spec === '#') {
+        // exit
+      } else if (spec.match(/[1-9]/)) {
+        // enemy wave spot
+      } else if (spec.toUpperCase() === spec) {
+        // uppercase is enemy
+        const type = `enemy-${spec.toLowerCase()}`;
+      } else {
+        // lowercase is block
+        const type = `block-${spec}`;
+        const block = matter.add.sprite(x+16, y+16, type, null, { shape: physicsShapes[type] });
+        block.name = block;
+      }
+    });
+  });
+
+  level.width = rows[0].length * 32;
+}
+
 function create() {
   const { game, level } = state;
   const { matter } = game;
@@ -338,18 +393,18 @@ function create() {
 
   state.sky = game.add.sprite(400, 300, level.background);
 
+  createMap();
+
   const ground = state.ground = createGround();
-
   const ceiling = state.ceiling = createCeiling();
-
   const leftWall = state.leftWall = createWall(false, -40, 400);
   const rightWall = state.rightWall = createWall(true, level.width + 40, 400);
 
   // +20 for a little bit of dynamism on load
   const characterY = 20 + config.height - (config.characterHeight/2);
-  const hero = state.hero = createHero(150, characterY);
+  const hero = state.hero = createHero(state.initialHeroPosition);
 
-  const sidekick = state.sidekick = createSidekick(100, characterY, true);
+  const sidekick = state.sidekick = createSidekick(state.initialSidekickPosition, true);
 
   // target, round pixels for jitter, lerpx, lerpy, offsetx, offsety
   game.cameras.main.startFollow(hero, false, 0.05, 0, 0, 270);
@@ -520,8 +575,8 @@ function updateCameraAndBounds() {
 
   ground.x = config.width / 2 + leftBound;
 
-  leftWall.x = Math.max(-40, leftBound - 50);
-  rightWall.x = Math.min(level.width + 40, rightBound + 50);
+  leftWall.x = Math.max(-50, leftBound - 50);
+  rightWall.x = Math.min(level.width + 50, rightBound + 50);
 
   // parallax should depend on sky width and level width
   // worldView.x = 0 means we show sky's left border
@@ -630,7 +685,7 @@ function updateSidekick() {
 }
 
 function updateHero() {
-  const { game, matter, hero, cursors, keys } = state;
+  const { game, matter, hero, cursors, keys, throwState } = state;
 
   updateCachedVelocityFor(hero);
   updateHpBarFor(hero);
@@ -640,7 +695,7 @@ function updateHero() {
     state.facingRight = false;
     hero.setFlipX(true);
     hero.applyForce({
-      x: state.throwState === 'hold' ? -0.025 : -0.1,
+      x: throwState === 'hold' ? -0.025 : -0.1,
       y: 0,
     });
   }
@@ -649,14 +704,14 @@ function updateHero() {
     state.facingRight = true;
     hero.setFlipX(false);
     hero.applyForce({
-      x: state.throwState === 'hold' ? 0.025 : 0.1,
+      x: throwState === 'hold' ? 0.025 : 0.1,
       y: 0,
     });
   }
   if (hero.touching.bottom && cursors.up.isDown) {
     hero.applyForce({
       x: 0,
-      y: -0.25,
+      y: throwState === 'hold' ? -0.16 : -0.33,
     });
   }
 
