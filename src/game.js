@@ -5,13 +5,12 @@ import sidekickSprite from './assets/sidekick.png';
 
 import enemySpriteA from './assets/enemy-a.png';
 
-import skyImage from './assets/sky.png';
 import skyImage2 from './assets/sky-2.png';
 import groundImage from './assets/ground.png';
 import wallImage from './assets/wall.png';
 import hpbarImage from './assets/hpbar.png';
 
-import level1Meta from './assets/level-1.json';
+import level1Background from './assets/level-1.png';
 import level1Map from './assets/level-1.map';
 
 import blockA from './assets/block-a.png';
@@ -43,9 +42,10 @@ const config = {
 };
 
 const state : any = {
-  level: level1Meta,
+  level: { name: 'level-1' },
   physicsShapes,
   enemies: [],
+  waveEnemies: [],
   keys: {},
   throwState: 'calm',
   wigglePhase: 0,
@@ -69,14 +69,14 @@ function preload() {
   game.load.image('hero', heroSprite);
   game.load.image('sidekick', sidekickSprite);
   game.load.image('enemy-a', enemySpriteA);
-  game.load.image('sky', skyImage);
+  game.load.image('level-1', level1Background);
   game.load.image('sky-2', skyImage2);
   game.load.image('ground', groundImage);
   game.load.image('wall', wallImage);
   game.load.image('hpbar', hpbarImage);
   game.load.image('block-a', blockA);
 
-  game.load.text('map', level1Map);
+  game.load.text('level-1', level1Map);
 }
 
 function createHero({ x, y }) {
@@ -172,14 +172,14 @@ function createHpBar(owner, maxHP) {
   return hpBar;
 }
 
-function createEnemy({ type, x, y, hp }) {
+function createEnemy({ type, x, y }) {
   const { game } = state;
   const enemyId = `enemy-${type}`;
 
   const enemy = game.matter.add.sprite(x, y, enemyId, null, { shape: physicsShapes[enemyId] });
 
   updateCachedVelocityFor(enemy);
-  createHpBar(enemy, hp);
+  createHpBar(enemy, enemyDefaults[type].hp);
 
   return enemy;
 }
@@ -236,7 +236,7 @@ function updateHpBarFor(owner) {
 }
 
 function updateEnemy(enemy) {
-  const { hero } = state;
+  const { hero, waveEnemies } = state;
 
   updateCachedVelocityFor(enemy);
   updateHpBarFor(enemy);
@@ -246,21 +246,23 @@ function updateEnemy(enemy) {
     return;
   }
 
-  const dx = hero.x - enemy.x;
-  if (dx < -10) {
-    enemy.applyForce({
-      x: -0.004,
-      y: 0,
-    });
-    enemy.setAngularVelocity(0.0005);
-  } else if (dx > 10) {
-    enemy.applyForce({
-      x: 0.004,
-      y: 0,
-    });
-    enemy.setAngularVelocity(-0.0005);
-  } else {
-    // attack
+  if (waveEnemies.find(e => e === enemy)) {
+    const dx = hero.x - enemy.x;
+    if (dx < -10) {
+      enemy.applyForce({
+        x: -0.004,
+        y: 0,
+      });
+      enemy.setAngularVelocity(0.0005);
+    } else if (dx > 10) {
+      enemy.applyForce({
+        x: 0.004,
+        y: 0,
+      });
+      enemy.setAngularVelocity(-0.0005);
+    } else {
+      // attack
+    }
   }
 }
 
@@ -282,6 +284,7 @@ function removeEnemy(enemy) {
   const { matter } = state;
   removeHpBarFor(enemy);
   state.enemies = state.enemies.filter(e => e !== enemy);
+  state.waveEnemies = state.waveEnemies.filter(e => e !== enemy);
   matter.world.remove(enemy);
   enemy.destroy();
 }
@@ -344,13 +347,23 @@ function createCeiling() {
 function createMap() {
   const { matter, game, level } = state;
 
-  const map = state.map = game.cache.text.get('map');
+  const map = state.map = game.cache.text.get(level.name);
 
   const rows = map.split('\n');
+  const cols = rows[0].split('').map(col => []);
   rows.forEach((row, r) => {
-    const y = r * 32 - 8; // 8 because doesnt cleanly divide
     row.split('').forEach((spec, c) => {
-      const x = c * 32;
+      cols[c][r] = spec;
+    });
+  });
+
+  const waves = [];
+  let waveEnemies = [];
+
+  cols.forEach((col, c) => {
+    const x = c * 32;
+    col.forEach((spec, r) => {
+      const y = r * 32 - 8; // 8 because doesnt cleanly divide
 
       if (spec === '.') {
         return;
@@ -359,20 +372,33 @@ function createMap() {
       if (spec === '@') {
         state.initialHeroPosition = {
           x,
-          y,
+          y: y - 32,
         };
       } else if (spec === '$') {
         state.initialSidekickPosition = {
           x,
-          y,
+          y: y - 8,
         };
       } else if (spec === '#') {
         // exit
-      } else if (spec.match(/[1-9]/)) {
-        // enemy wave spot
+        // automatically add final wave to x_lock just before this x coord?
+      } else if (spec === '|') {
+        waves.push({
+          enemies: waveEnemies,
+          x_lock: x - config.width,
+          i: waves.length,
+        });
+        waveEnemies = [];
       } else if (spec.toUpperCase() === spec) {
         // uppercase is enemy
-        const type = `enemy-${spec.toLowerCase()}`;
+        const type = spec.toLowerCase();
+        const enemy = createEnemy({
+          type,
+          x,
+          y: y - 16,
+        });
+        state.enemies.push(enemy);
+        waveEnemies.push(enemy);
       } else {
         // lowercase is block
         const type = `block-${spec}`;
@@ -382,7 +408,8 @@ function createMap() {
     });
   });
 
-  level.width = rows[0].length * 32;
+  level.width = cols.length * 32;
+  level.waves = waves;
 }
 
 function create() {
@@ -391,7 +418,7 @@ function create() {
 
   state.matter = matter;
 
-  state.sky = game.add.sprite(400, 300, level.background);
+  state.sky = game.add.sprite(400, 300, level.name);
 
   createMap();
 
@@ -410,9 +437,6 @@ function create() {
   game.cameras.main.startFollow(hero, false, 0.05, 0, 0, 270);
 
   game.cameras.main.setBounds(0, 0, level.width, 1080 * 2);
-
-  // limit the amount of useless scrolling
-  //     game.camera.deadzone = new Phaser.Rectangle(100, 100, 600, 400);
 
   state.cursors = game.input.keyboard.createCursorKeys();
 
@@ -527,30 +551,27 @@ function collisionEnd(event) {
 
 // parameter t is milliseconds since load
 function update() {
-  const { enemies, game, level } = state;
+  const { waveEnemies, enemies, game, level } = state;
 
   updateHero();
   updateSidekick();
-  enemies.forEach(enemy => updateEnemy(enemy));
 
-  if (enemies.length === 0) {
-    delete state.x_lock;
+  // dont update offscreen enemies
+  waveEnemies.forEach(enemy => updateEnemy(enemy));
+
+  if (waveEnemies.length === 0) {
     delete state.camera_lock;
+
+    if (level.waves.length) {
+      const wave = level.waves.shift();
+      state.waveEnemies = wave.enemies;
+      state.x_lock = wave.x_lock;
+    } else {
+      delete state.x_lock;
+    }
   }
 
   updateCameraAndBounds();
-
-  if (level.waves.length && game.cameras.main.scrollX > level.waves[0].x_spawn) {
-    spawnWave(level.waves.shift());
-  }
-}
-
-function spawnWave({ x_lock, enemies }) {
-  state.x_lock = x_lock;
-  for (const spec of enemies) {
-    const enemy = createEnemy(spec);
-    state.enemies.push(enemy);
-  }
 }
 
 function updateCameraAndBounds() {
@@ -568,6 +589,12 @@ function updateCameraAndBounds() {
 
   const rightBound = leftBound + config.width;
 
+  if (x_lock) {
+    rightWall.x = x_lock + config.width + 50;
+  } else {
+    rightWall.x = level.width + 50;
+  }
+
   Phaser.Physics.Matter.Matter.Body.setPosition(ceiling, {
     x: 400 + leftBound,
     y: ceiling.position.y,
@@ -576,7 +603,6 @@ function updateCameraAndBounds() {
   ground.x = config.width / 2 + leftBound;
 
   leftWall.x = Math.max(-50, leftBound - 50);
-  rightWall.x = Math.min(level.width + 50, rightBound + 50);
 
   // parallax should depend on sky width and level width
   // worldView.x = 0 means we show sky's left border
@@ -587,6 +613,10 @@ function updateCameraAndBounds() {
 function updateSidekick() {
   const { game, hero, keys } = state;
   let { sidekick } = state;
+
+  if (sidekick.x > hero.x + config.width) {
+    sidekick.setVelocityX(0);
+  }
 
   const dx = hero.x - sidekick.x;
   const dy = hero.y - sidekick.y;
@@ -623,6 +653,11 @@ function updateSidekick() {
           sidekick.applyForce({
             x: dx < 0 ? -0.03 : 0.03,
             y: dy < 0 ? -0.03 : 0.03,
+          });
+
+          hero.applyForce({
+            x: dx < 0 ? 0.005 : -0.005,
+            y: dy < 0 ? 0.005 : -0.005,
           });
 
           // tween toward zero
@@ -667,7 +702,12 @@ function updateSidekick() {
 
         sidekick.applyForce({
           x: state.facingRight ? 0.75 : -0.75,
-          y: 0,
+          y: Phaser.Math.FloatBetween(-0.20, 0),
+        });
+
+        hero.applyForce({
+          x: state.facingRight ? -0.1 : 0.1,
+          y: -0.01,
         });
 
         game.time.addEvent({
