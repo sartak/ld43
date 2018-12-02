@@ -67,6 +67,9 @@ const config = {
   parent: 'engine',
   width: 800,
   height: 600,
+  input: {
+    gamepad: true,
+  },
   levelNames: ['level-1', 'level-2', 'level-3'],
   physics: {
     default: 'matter',
@@ -1060,11 +1063,36 @@ function update() {
     return;
   }
 
-  state.zDownStart = Phaser.Input.Keyboard.JustDown(keys.Z);
-  const zDown = state.zDown = keys.Z.isDown;
+  const oldZDown = state.zDown;
+  state.zDown = keys.Z.isDown;
   state.leftDown = cursors.left.isDown;
   state.rightDown = cursors.right.isDown;
   state.upDown = cursors.up.isDown;
+
+  if (game.input.gamepad.total) {
+    const pads = this.input.gamepad.gamepads;
+    pads.forEach((pad) => {
+      if (!pad) {
+        return;
+      }
+
+      if (pad.A || pad.B) {
+        state.zDown = true;
+      }
+      if (pad.X || pad.Y || pad.up) {
+        state.upDown = true;
+      }
+      if (pad.left) {
+        state.leftDown = true;
+      }
+      if (pad.right) {
+        state.rightDown = true;
+      }
+    });
+  }
+
+  const zDown = state.zDown;
+  state.zDownStart = !oldZDown && zDown;
 
   if (!level.startTime) {
     level.startTime = new Date();
@@ -1471,6 +1499,17 @@ function winLevel() {
   level.victory = true;
   hero.anims.play('neutral');
 
+  if (sidekick.damageTween) {
+    sidekick.damageTween.stop();
+  }
+
+  if (hero.damageTween) {
+    hero.damageTween.stop();
+  }
+
+  sidekick.setTint(0xFFFFFF);
+  hero.setTint(0xFFFFFF);
+
   background.victoryTween = game.tweens.addCounter({
     from: 0,
     to: 70,
@@ -1516,14 +1555,16 @@ function winLevel() {
       ease: 'Cubic.easeInOut',
       duration: 1000,
       onComplete: () => {
-        game.tweens.add({
-          targets: exit.sprite,
-          alpha: 0,
-          y: exit.sprite.y + 40 * mult,
-          ease: 'Cubic.easeIn',
-          delay: 2000,
-          duration: 500,
-        });
+        if (!lastLevel) {
+          game.tweens.add({
+            targets: exit.sprite,
+            alpha: 0,
+            y: exit.sprite.y + 40 * mult,
+            ease: 'Cubic.easeIn',
+            delay: 2000,
+            duration: 500,
+          });
+        }
       },
     });
   }
@@ -1547,9 +1588,407 @@ function winLevel() {
     });
   });
 
-  // duration, heroDEaths, sidekickDeaths==sacrifices
+  const origin = game.cameras.main.scrollX;
+  game.cameras.main.stopFollow();
+
+  let delay = 0;
+  if (lastLevel) {
+    sidekick.anims.play('40');
+
+    let sidekickX = origin + 600;
+    let sidekickY = 300;
+    game.tweens.add({
+      targets: sidekick,
+      x: sidekickX,
+      y: sidekickY,
+      angle: 0,
+      alpha: 1,
+      duration: 1000,
+      ease: 'Quad.easeInOut',
+    });
+
+    let heroX = origin + 300;
+    const heroY = 330;
+    game.tweens.add({
+      targets: hero,
+      x: heroX,
+      y: heroY,
+      angle: 0,
+      alpha: 1,
+      duration: 1000,
+      ease: 'Quad.easeInOut',
+    });
+
+    game.tweens.add({
+      targets: exit.sprite,
+      x: origin + 400,
+      y: 330,
+      ease: 'Quad.easeInOut',
+      duration: 1000,
+    });
+
+    delay += 1000;
+
+    const worthIt = game.add.text(
+      origin + 500,
+      310,
+      'Was it worth it?',
+      {
+        fontFamily: '"Avenir Next", "Avenir", "Helvetica Neue", "Helvetica"',
+        fontSize: 25,
+        color: 'rgb(186, 109, 153)',
+      },
+    );
+    worthIt.alpha = 0;
+
+    delay += 500;
+    game.tweens.add({
+      targets: worthIt,
+      y: 350,
+      alpha: 1,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 500,
+    });
+
+    const myPain = game.add.text(
+      origin + 520,
+      340,
+      'All my pain?',
+      {
+        fontFamily: '"Avenir Next", "Avenir", "Helvetica Neue", "Helvetica"',
+        fontSize: 25,
+        color: 'rgb(186, 109, 153)',
+      },
+    );
+    myPain.alpha = 0;
+
+    delay += 2000;
+    game.tweens.add({
+      targets: myPain,
+      y: 380,
+      alpha: 1,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 500,
+    });
+
+    const mySuffering = game.add.text(
+      origin + 540,
+      370,
+      'All my suffering?',
+      {
+        fontFamily: '"Avenir Next", "Avenir", "Helvetica Neue", "Helvetica"',
+        fontSize: 25,
+        color: 'rgb(186, 109, 153)',
+      },
+    );
+    mySuffering.alpha = 0;
+
+    delay += 1000;
+    game.tweens.add({
+      targets: mySuffering,
+      y: 410,
+      alpha: 1,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 500,
+    });
+
+    delay += 2000;
+    game.tweens.add({
+      targets: worthIt,
+      y: 390,
+      alpha: 0,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 500,
+    });
+
+    delay += 500;
+    game.tweens.add({
+      targets: myPain,
+      y: 420,
+      alpha: 0,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 500,
+    });
+
+    delay += 250;
+    game.tweens.add({
+      targets: mySuffering,
+      y: 450,
+      alpha: 0,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 500,
+    });
+
+    delay += 1000;
+    const sprite2 = game.add.sprite(heroX, heroY, 'exit');
+    const sprite3 = game.add.sprite(heroX, heroY, 'exit');
+    sprite2.alpha = 0;
+    sprite3.alpha = 0;
+
+    delay += 1000;
+
+    game.time.addEvent({
+      delay,
+      callback: () => {
+        game.sound.play('unlock-exit');
+      },
+    });
+
+    game.tweens.add({
+      targets: exit.sprite,
+      x: heroX,
+      y: 200,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 1000,
+      onComplete: () => {
+        game.sound.play('unlock-exit');
+      },
+    });
+    delay += 1000;
+    game.tweens.add({
+      targets: sprite2,
+      x: heroX + 100,
+      y: 200,
+      alpha: 1,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 1000,
+      onComplete: () => {
+        game.sound.play('unlock-exit');
+      },
+    });
+    delay += 1000;
+    game.tweens.add({
+      targets: sprite3,
+      x: heroX - 100,
+      y: 200,
+      alpha: 1,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 1000,
+    });
+
+    delay += 1500;
+    const sac = game.add.text(
+      origin + 200,
+      350,
+      'Sacrifices must be made.',
+      {
+        fontFamily: '"Avenir Next", "Avenir", "Helvetica Neue", "Helvetica"',
+        fontSize: 25,
+        color: 'rgb(220, 60, 60)',
+      },
+    );
+    sac.alpha = 0;
+
+    game.tweens.add({
+      targets: sac,
+      y: 400,
+      alpha: 1,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 500,
+    });
+
+    delay += 2000;
+    game.tweens.add({
+      targets: sac,
+      y: 440,
+      alpha: 0,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 500,
+    });
+
+    delay += 2000;
+    game.time.addEvent({
+      delay,
+      callback: () => {
+        sidekick.anims.play('20');
+      },
+    });
+
+    delay += 500;
+    sidekickY += 20;
+    game.tweens.add({
+      targets: sidekick,
+      y: sidekickY,
+      delay,
+      ease: 'Quad.easeOut',
+      duration: 300,
+      onComplete: () => {
+        game.sound.play('sidekick-die');
+      },
+    });
+
+    delay += 2000;
+    const idotdotdot = game.add.text(
+      origin + 450,
+      330,
+      'I...',
+      {
+        fontFamily: '"Avenir Next", "Avenir", "Helvetica Neue", "Helvetica"',
+        fontSize: 25,
+        color: 'rgb(186, 109, 153)',
+      },
+    );
+    idotdotdot.alpha = 0;
+
+    game.tweens.add({
+      targets: idotdotdot,
+      y: 370,
+      alpha: 1,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 500,
+    });
+
+    delay += 2000;
+    game.tweens.add({
+      targets: idotdotdot,
+      y: 410,
+      alpha: 0,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 500,
+    });
+
+    delay += 2000;
+    const idly = game.add.text(
+      origin + 450,
+      330,
+      "I... don't love you any more.",
+      {
+        fontFamily: '"Avenir Next", "Avenir", "Helvetica Neue", "Helvetica"',
+        fontSize: 25,
+        color: 'rgb(186, 109, 153)',
+      },
+    );
+    idly.alpha = 0;
+
+    game.tweens.add({
+      targets: idly,
+      y: 370,
+      alpha: 1,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 2000,
+    });
+
+    delay += 3000;
+    sidekickX = origin + config.width + 64;
+    game.tweens.add({
+      targets: sidekick,
+      x: sidekickX,
+      delay,
+      duration: 3000,
+    });
+
+    delay += 5000;
+    game.tweens.add({
+      targets: idly,
+      y: 410,
+      alpha: 0,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 500,
+    });
+
+    delay += 2000;
+    const sac2 = game.add.text(
+      origin + 200,
+      350,
+      'Sacrifices must be made.',
+      {
+        fontFamily: '"Avenir Next", "Avenir", "Helvetica Neue", "Helvetica"',
+        fontSize: 25,
+        color: 'rgb(220, 60, 60)',
+      },
+    );
+    sac2.alpha = 0;
+
+    game.tweens.add({
+      targets: sac2,
+      y: 400,
+      alpha: 1,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 500,
+    });
+
+    delay += 2000;
+    game.tweens.add({
+      targets: sac2,
+      y: 400,
+      alpha: 0,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 500,
+    });
+
+    delay += 1000;
+    game.tweens.add({
+      targets: background,
+      alpha: 0,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 1000,
+    });
+
+    delay += 2000;
+    game.tweens.add({
+      targets: sprite2,
+      y: 150,
+      alpha: 0,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 2000,
+    });
+
+    delay += 1000;
+    game.tweens.add({
+      targets: sprite3,
+      y: 150,
+      alpha: 0,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 2000,
+    });
+
+    delay += 1000;
+    game.tweens.add({
+      targets: exit.sprite,
+      y: 150,
+      alpha: 0,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 2000,
+    });
+
+    delay += 3000;
+
+    heroX = origin + 400;
+    game.tweens.add({
+      targets: hero,
+      x: heroX,
+      y: 500,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 500,
+    });
+
+    delay += 1000;
+  }
+
   game.time.addEvent({
-    delay: 2000,
+    delay: 2000 + delay,
     callback: () => {
       let titleLabel = `level ${level.index+1} complete!!`;
       if (lastLevel) {
@@ -1561,21 +2000,22 @@ function winLevel() {
       const sacrificesLabel = `sacrifices: ${sidekickDeaths}`;
       const continueLabel = 'press throw to continue';
 
-      const origin = game.cameras.main.scrollX;
+      addEndLevelLabel(origin + 130, 100, 0, 64, titleLabel, false);
+      addEndLevelLabel(origin + 310, 200, 1, 32, durationLabel, false);
+      addEndLevelLabel(origin + 310, 250, 2, 32, deathsLabel, false);
+      addEndLevelLabel(origin + 310, 300, 3, 32, sacrificesLabel, false);
 
-      addEndLevelLabel(origin + 130, 100, 0, 64, titleLabel);
-      addEndLevelLabel(origin + 310, 200, 1, 32, durationLabel);
-      addEndLevelLabel(origin + 310, 250, 2, 32, deathsLabel);
-      addEndLevelLabel(origin + 310, 300, 3, 32, sacrificesLabel);
-
-      if (!lastLevel) {
-        addEndLevelLabel(origin + 225, 350, 5, 32, continueLabel);
+      if (lastLevel) {
+        const thanksLabel = 'Thank you for playing.';
+        addEndLevelLabel(origin + 225, 350, 4.5, 32, thanksLabel, true);
+      } else {
+        addEndLevelLabel(origin + 225, 350, 5, 32, continueLabel, true);
       }
     },
   });
 }
 
-function addEndLevelLabel(x, y, i, fontSize, text) {
+function addEndLevelLabel(x, y, i, fontSize, text, loop) {
   const { game, level } = state;
   const label = game.add.text(
     x,
@@ -1609,7 +2049,7 @@ function addEndLevelLabel(x, y, i, fontSize, text) {
     },
   });
 
-  if (i === 5) {
+  if (loop) {
     game.time.addEvent({
       delay: 400*(i+1),
       callback: () => {
