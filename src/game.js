@@ -1468,7 +1468,7 @@ function updateHero() {
       level.jumpStarted = true;
       hero.applyForce({
         x: 0,
-        y: throwState === 'hold' ? -0.16 : -0.33,
+        y: throwState === 'hold' ? -0.27 : -0.35,
       });
     }
   } else {
