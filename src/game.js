@@ -1023,7 +1023,7 @@ function collisionStart(event) {
         if (((sidekickDamage > sidekick.currentHP && sidekick.currentHP > 0) || (sidekickDamage > 30 && Phaser.Math.Between(0, 5) === 0)) && (!level.lastOink || level.lastOink < Date.now() - 5*1000)) {
           level.lastOink = Date.now();
 
-          const texts = ['oink!', 'squeal!', 'yarr!', 'avast!', 'ow!', 'barf!'];
+          const texts = ['oink!!', 'squeal!!', 'yarr!!', 'avast!!', 'ow!!', 'barf!!', 'golly!!'];
           const oink = game.add.text(
             sidekick.x,
             sidekick.y,
