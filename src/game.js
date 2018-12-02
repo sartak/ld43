@@ -1176,6 +1176,7 @@ function respawnIfNeeded(character) {
     }
 
     level.throwState = 'calm';
+    hero.anims.play('neutral');
 
     background.heroDieTween = game.tweens.addCounter({
       from: 0,
@@ -1410,6 +1411,7 @@ function winLevel() {
 
   matter.world.pause();
   level.victory = true;
+  hero.anims.play('neutral');
 
   background.victoryTween = game.tweens.addCounter({
     from: 0,
