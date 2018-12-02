@@ -719,7 +719,7 @@ function create() {
         end: 2,
       },
     ),
-    frameRate: 5,
+    frameRate: 8,
     repeat: -1,
   });
 
