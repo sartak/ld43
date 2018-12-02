@@ -25,6 +25,22 @@ import level3Background from './assets/level-3.png';
 import level3Map from './assets/level-3.map';
 
 import blockA from './assets/block-a.png';
+import blockB from './assets/block-b.png';
+import blockC from './assets/block-c.png';
+import blockD from './assets/block-d.png';
+import blockE from './assets/block-e.png';
+import blockF from './assets/block-f.png';
+import blockG from './assets/block-g.png';
+import blockH from './assets/block-h.png';
+import blockI from './assets/block-i.png';
+import blockJ from './assets/block-j.png';
+import blockK from './assets/block-k.png';
+import blockL from './assets/block-l.png';
+import blockM from './assets/block-m.png';
+import blockN from './assets/block-n.png';
+import blockO from './assets/block-o.png';
+import blockP from './assets/block-p.png';
+import blockQ from './assets/block-q.png';
 
 import physicsShapes from './assets/physics.json';
 
@@ -114,7 +130,8 @@ export default function startGame() {
 function preload() {
   const game = state.game = this;
   game.load.image('hero', heroSprite);
-  game.load.image('sidekick', sidekickSprite);
+  game.load.spritesheet('sidekick', sidekickSprite, { frameWidth: 70,
+    frameHeight: 70 });
   game.load.image('enemy-a', enemySpriteA);
   game.load.image('enemy-b', enemySpriteB);
   game.load.image('enemy-c', enemySpriteC);
@@ -129,6 +146,22 @@ function preload() {
   game.load.image('wall', wallImage);
   game.load.image('hpbar', hpbarImage);
   game.load.image('block-a', blockA);
+  game.load.image('block-b', blockB);
+  game.load.image('block-c', blockC);
+  game.load.image('block-d', blockD);
+  game.load.image('block-e', blockE);
+  game.load.image('block-f', blockF);
+  game.load.image('block-g', blockG);
+  game.load.image('block-h', blockH);
+  game.load.image('block-i', blockI);
+  game.load.image('block-j', blockJ);
+  game.load.image('block-k', blockK);
+  game.load.image('block-l', blockL);
+  game.load.image('block-m', blockM);
+  game.load.image('block-n', blockN);
+  game.load.image('block-o', blockO);
+  game.load.image('block-p', blockP);
+  game.load.image('block-q', blockQ);
 
   game.load.text('level-1', level1Map);
   game.load.text('level-2', level2Map);
@@ -535,7 +568,7 @@ function createMap() {
       } else {
         // lowercase is block
         const type = `block-${spec}`;
-        const block = matter.add.sprite(x+16, y+16, type, null, { shape: physicsShapes[type] });
+        const block = matter.add.sprite(x+16, y+16, type, null, { shape: physicsShapes.block });
         block.name = block;
         blocks.push(block);
       }
@@ -665,6 +698,40 @@ function create() {
   const rightWall = state.rightWall = createWall(true, level.width + 40, 400);
 
   state.cursors = game.input.keyboard.createCursorKeys();
+
+  game.anims.create({
+    key: 20,
+    frames: [
+      {
+        key: 'sidekick',
+        frame: 0,
+      },
+    ],
+  });
+
+  game.anims.create({
+    key: 40,
+    frames: [{ key: 'sidekick',
+      frame: 1 }],
+  });
+
+  game.anims.create({
+    key: 60,
+    frames: [{ key: 'sidekick',
+      frame: 2 }],
+  });
+
+  game.anims.create({
+    key: 80,
+    frames: [{ key: 'sidekick',
+      frame: 3 }],
+  });
+
+  game.anims.create({
+    key: 100,
+    frames: [{ key: 'sidekick',
+      frame: 4 }],
+  });
 
   if (config.debug) {
     game.input.keyboard.on('keydown_Q', () => {
@@ -1162,6 +1229,21 @@ function updateSidekick() {
   updateCachedVelocityFor(sidekick);
   updateHpBarFor(sidekick);
   respawnIfNeeded(sidekick);
+
+  let frame = '20';
+  if (sidekick.maxHP * 0.2 < sidekick.currentHP) {
+    frame = '40';
+  }
+  if (sidekick.maxHP * 0.4 < sidekick.currentHP) {
+    frame = '60';
+  }
+  if (level.index <= 1 && sidekick.maxHP * 0.6 < sidekick.currentHP) {
+    frame = '80';
+  }
+  if (level.index <= 0 && sidekick.maxHP * 0.8 < sidekick.currentHP) {
+    frame = '100';
+  }
+  sidekick.anims.play(frame);
 
   if (sidekick.isRespawnBeginning || hero.isRespawning) {
     return;
