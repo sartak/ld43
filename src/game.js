@@ -1284,7 +1284,7 @@ function updateSidekick() {
   }
   sidekick.anims.play(frame);
 
-  if (sidekick.isRespawnBeginning || hero.isRespawning) {
+  if (sidekick.isRespawning || hero.isRespawning) {
     return;
   }
 
