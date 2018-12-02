@@ -115,21 +115,27 @@ const state : any = {
 const enemyDefaults = {
   a: { hp: 100,
     attack: 1,
+    quick: 1,
     jumps: false },
   b: { hp: 150,
     attack: 1,
+    quick: 2,
     jumps: true },
   c: { hp: 50,
     attack: 3,
+    quick: 0.5,
     jumps: true },
   k: { hp: 400,
     attack: 2,
+    quick: 1.2,
     jumps: true },
   l: { hp: 400,
-    attack: 2,
+    attack: 1.4,
+    quick: 1.6,
     jumps: true },
   x: { hp: 200,
     attack: 2,
+    quick: 0,
     jumps: false },
 };
 
@@ -327,6 +333,7 @@ function createEnemy({ type, x, y }) {
 
   enemy.enemyType = type;
   enemy.attack = enemyDefaults[type].attack;
+  enemy.quick = enemyDefaults[type].quick;
 
   updateCachedVelocityFor(enemy);
   createHpBar(enemy, enemyDefaults[type].hp);
@@ -446,13 +453,13 @@ function updateEnemy(enemy) {
       const dx = hero.x - enemy.x;
       if (dx < -10) {
         enemy.applyForce({
-          x: -0.004,
+          x: -0.004 * enemy.quick,
           y: 0,
         });
         enemy.setAngularVelocity(0.0005);
       } else if (dx > 10) {
         enemy.applyForce({
-          x: 0.004,
+          x: 0.004 * enemy.quick,
           y: 0,
         });
         enemy.setAngularVelocity(-0.0005);
