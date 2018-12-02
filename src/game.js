@@ -550,7 +550,8 @@ function createMap() {
 function setupLevel(isInitial) {
   const { game, level } = state;
 
-  level.background = game.add.sprite(400, 300, level.name);
+  level.background = game.add.sprite(0, 0, level.name);
+  level.background.setPosition(level.background.width * 0.5, 300);
 
   createMap();
 
@@ -577,6 +578,20 @@ function setupLevel(isInitial) {
         const hero = level.hero = createHero(level.initialHeroPosition, true);
 
         const sidekick = level.sidekick = createSidekick(level.initialSidekickPosition, true);
+
+        [hero, sidekick].forEach((character) => {
+          updateHpBarFor(character);
+          [character, character.hpBar.fill, character.hpBar.border].forEach((component) => {
+            component.alpha = 0;
+
+            game.tweens.add({
+              targets: component,
+              alpha: 1,
+              ease: 'Cubic.easeOut',
+              duration: 200,
+            });
+          });
+        });
 
         // target, round pixels for jitter, lerpx, lerpy, offsetx, offsety
         game.cameras.main.startFollow(hero, false, 0.05, 0, 0, 270);
@@ -1063,12 +1078,17 @@ function respawnIfNeeded(character) {
 }
 
 function updateSidekick() {
-  const { game, keys, level } = state;
+  const { game, keys, level, ceiling, ground, leftWall, rightWall } = state;
   const { hero } = level;
   let { sidekick } = level;
 
   if (sidekick.x > hero.x + config.width) {
     sidekick.setVelocityX(0);
+  }
+
+  if (sidekick.y < ceiling.position.y - 50 || sidekick.y > ground.y || sidekick.x < leftWall.x || sidekick.x > rightWall.x) {
+    hero.throwState = 'calm';
+    sidekick.currentHP = -1;
   }
 
   const dx = hero.x - sidekick.x;
