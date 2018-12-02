@@ -505,7 +505,6 @@ function createTreasureEffects(sprite) {
   const radial = game.add.image(sprite.x, sprite.y - 20, 'radial');
   radial.blendMode = 'ADD';
   radial.alpha = 0.33;
-  //  radial.scale = 0.25;
   sprite.radial = radial;
 
   radial.glowTween = game.tweens.add({
@@ -1950,7 +1949,7 @@ function winLevel() {
       delay,
       duration: 1000,
     });
-    delay += 1000;
+    delay += 800;
     game.tweens.add({
       targets: sprite2,
       x: heroX + 100,
@@ -1967,15 +1966,22 @@ function winLevel() {
       targets: radial2,
       x: heroX + 100,
       y: 200-20,
-      alpha: 1,
+      alpha: 0.33,
       ease: 'Cubic.easeInOut',
       onComplete: () => {
-        radial2.glowTween.resume();
+        radial2.glowTween = game.tweens.add({
+          targets: radial2,
+          alpha: 0.66,
+          loop: -1,
+          ease: 'Quad.easeInOut',
+          yoyo: true,
+          duration: 1000,
+        });
       },
       delay,
       duration: 1000,
     });
-    delay += 1000;
+    delay += 800;
     game.tweens.add({
       targets: sprite3,
       x: heroX - 100,
@@ -1989,10 +1995,17 @@ function winLevel() {
       targets: radial3,
       x: heroX - 100,
       y: 200-20,
-      alpha: 1,
+      alpha: 0.33,
       ease: 'Cubic.easeInOut',
       onComplete: () => {
-        radial3.glowTween.resume();
+        radial3.glowTween = game.tweens.add({
+          targets: radial3,
+          alpha: 0.66,
+          loop: -1,
+          ease: 'Quad.easeInOut',
+          yoyo: true,
+          duration: 1000,
+        });
       },
       delay,
       duration: 1000,
