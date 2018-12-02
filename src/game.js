@@ -42,7 +42,9 @@ const config = {
 };
 
 const state : any = {
-  level: { name: 'level-1' },
+  level: { name: 'level-1',
+    heroDeaths: 0,
+    sidekickDeaths: 0 },
   physicsShapes,
   enemies: [],
   waveEnemies: [],
@@ -539,6 +541,10 @@ function create() {
         engine.remove();
       }
     });
+
+    game.input.keyboard.on('keydown_Y', () => {
+      winLevel();
+    });
   }
 
   ['Z', 'X', 'C'].forEach((code) => {
@@ -679,6 +685,10 @@ function collisionEnd(event) {
 function update() {
   const { waveEnemies, enemies, game, level, victory } = state;
 
+  if (!level.startTime) {
+    level.startTime = new Date();
+  }
+
   if (victory) {
     return;
   }
@@ -741,7 +751,7 @@ function updateCameraAndBounds() {
 }
 
 function respawnIfNeeded(character) {
-  const { game, hero, background } = state;
+  const { game, hero, background, level } = state;
   let { sidekick } = state;
 
   if (character.currentHP > 0) {
@@ -753,6 +763,8 @@ function respawnIfNeeded(character) {
   }
 
   if (character === hero) {
+    level.heroDeaths++;
+
     if (state.throwState === 'hold') {
       sidekick = state.sidekick = replaceSidekick(sidekick);
     }
@@ -770,6 +782,7 @@ function respawnIfNeeded(character) {
       },
     });
   } else if (character === sidekick) {
+    level.sidekickDeaths++;
     state.throwState = 'calm';
   }
 
@@ -942,7 +955,12 @@ function updateSidekick() {
 
 function winLevel() {
   const { background, game, matter, hero, sidekick, level, levelExit } = state;
-  const { blocks } = level;
+
+  level.endTime = new Date();
+  const { blocks, startTime, endTime, heroDeaths, sidekickDeaths } = level;
+
+  const duration = (endTime.getTime() - startTime.getTime()) / 1000;
+
   matter.world.pause();
   state.victory = true;
 
@@ -954,9 +972,11 @@ function winLevel() {
       const tint = Phaser.Display.Color.Interpolate.ColorWithColor(whiteColor, greenColor, 100, background.victoryTween.getValue());
       const color = Phaser.Display.Color.ObjectToColor(tint).color;
       background.setTint(color);
+      background.setAlpha(1 - background.victoryTween.getValue() / 100);
     },
   });
 
+  // if holding then throw
   [hero, sidekick].forEach((character) => {
     const { hpBar } = character;
     const { border, fill } = hpBar;
@@ -971,14 +991,24 @@ function winLevel() {
     });
   });
 
-  game.tweens.add({
-    targets: levelExit.sprite,
-    y: levelExit.sprite.y - 30,
-    angle: 12,
-    alpha: 0,
-    ease: 'Cubic.easeIn',
-    duration: 500,
-  });
+  if (state.throwState === 'hold') {
+    game.tweens.add({
+      targets: sidekick,
+      x: sidekick.x + state.facingRight ? 300 : -300,
+      duration: 500,
+    });
+  }
+
+  if (levelExit && levelExit.sprite) {
+    game.tweens.add({
+      targets: levelExit.sprite,
+      y: levelExit.sprite.y - 30,
+      angle: 12,
+      alpha: 0,
+      ease: 'Cubic.easeIn',
+      duration: 500,
+    });
+  }
 
   blocks.forEach((block) => {
     const { x, y } = block;
@@ -994,6 +1024,71 @@ function winLevel() {
       duration: 3000,
     });
   });
+
+  // duration, heroDEaths, sidekickDeaths==sacrifices
+  game.time.addEvent({
+    delay: 2000,
+    callback: () => {
+      const levelLabel = 'level 1 complete!!';
+      const durationLabel = `time: ${duration.toFixed(1)}s`;
+      const deathsLabel = `deaths: ${heroDeaths}`;
+      const sacrificesLabel = `sacrifices: ${sidekickDeaths}`;
+      const continueLabel = 'press throw to continue';
+
+      const origin = game.cameras.main.scrollX;
+
+      addEndLevelLabel(origin + 130, 100, 0, 64, levelLabel);
+      addEndLevelLabel(origin + 310, 200, 1, 32, durationLabel);
+      addEndLevelLabel(origin + 310, 250, 2, 32, deathsLabel);
+      addEndLevelLabel(origin + 310, 300, 3, 32, sacrificesLabel);
+      addEndLevelLabel(origin + 225, 350, 5, 32, continueLabel);
+    },
+  });
+}
+
+function addEndLevelLabel(x, y, i, fontSize, text) {
+  const { game } = state;
+  const label = game.add.text(
+    x,
+    y + 20,
+    text,
+    {
+      fontFamily: '"Avenir Next", "Avenir", "Helvetica Neue", "Helvetica"',
+      fontSize,
+      color: '#FFDF00',
+    },
+  );
+  label.setStroke('#000000', 12);
+  label.alpha = 0;
+
+  game.time.addEvent({
+    delay: 1000*i,
+    callback: () => {
+      game.tweens.add({
+        targets: label,
+        alpha: 1,
+        y,
+        duration: 500,
+        ease: 'Cubic.easeInOut',
+      });
+    },
+  });
+
+  if (i === 5) {
+    game.time.addEvent({
+      delay: 1000*(i+1),
+      callback: () => {
+        game.tweens.add({
+          targets: label,
+          y: y + 10,
+          yoyo: true,
+          loop: -1,
+          duration: 500,
+          ease: 'Cubic.easeInOut',
+        });
+      },
+    });
+  }
 }
 
 function updateHero() {
