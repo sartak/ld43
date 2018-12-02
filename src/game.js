@@ -365,12 +365,21 @@ function updateHpBarFor(owner) {
   }
 }
 
+function isOutOfBounds(character) {
+  const { ceiling, ground, leftWall, rightWall } = state;
+  return character.y < ceiling.position.y - 50 || character.y > ground.y || character.x < leftWall.x || character.x > rightWall.x;
+}
+
 function updateEnemy(enemy) {
   const { game, matter, level } = state;
   const { hero, waveEnemies } = level;
 
   if (enemy.isDying) {
     return;
+  }
+
+  if (isOutOfBounds(enemy)) {
+    enemy.currentHP = -1;
   }
 
   updateCachedVelocityFor(enemy);
@@ -1303,7 +1312,7 @@ function respawnIfNeeded(character) {
 }
 
 function updateSidekick() {
-  const { game, keys, level, ceiling, ground, leftWall, rightWall } = state;
+  const { game, keys, level } = state;
   const { hero } = level;
   let { sidekick } = level;
 
@@ -1311,7 +1320,7 @@ function updateSidekick() {
     sidekick.setVelocityX(0);
   }
 
-  if (sidekick.y < ceiling.position.y - 50 || sidekick.y > ground.y || sidekick.x < leftWall.x || sidekick.x > rightWall.x) {
+  if (isOutOfBounds(sidekick)) {
     hero.throwState = 'calm';
     sidekick.currentHP = -1;
   }
