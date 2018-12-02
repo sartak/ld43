@@ -105,6 +105,8 @@ const state : any = {
   level: createLevel(0),
   physicsShapes,
   keys: {},
+  heroDeaths: 0,
+  sidekickDeaths: 0,
 };
 
 const enemyDefaults = {
@@ -1222,6 +1224,7 @@ function respawnIfNeeded(character) {
 
   if (character === hero) {
     level.heroDeaths++;
+    state.heroDeaths++;
     game.sound.play('hero-die');
 
     if (level.throwState === 'hold') {
@@ -1243,6 +1246,7 @@ function respawnIfNeeded(character) {
     });
   } else if (character === sidekick) {
     level.sidekickDeaths++;
+    state.sidekickDeaths++;
     level.throwState = 'calm';
     game.sound.play('sidekick-die');
   }
@@ -1463,7 +1467,8 @@ function winLevel() {
   }
 
   level.endTime = new Date();
-  const { hero, sidekick, blocks, startTime, endTime, heroDeaths, sidekickDeaths, exit } = level;
+  const { hero, sidekick, blocks, exit } = level;
+  const { startTime, endTime, heroDeaths, sidekickDeaths } = lastLevel ? state : level;
 
   const duration = (endTime.getTime() - startTime.getTime()) / 1000;
 
@@ -1551,7 +1556,11 @@ function winLevel() {
   game.time.addEvent({
     delay: 2000,
     callback: () => {
-      const levelLabel = `level ${level.index+1} complete!!`;
+      let titleLabel = `level ${level.index+1} complete!!`;
+      if (lastLevel) {
+        titleLabel = 'You won the game!!';
+      }
+
       const durationLabel = `time: ${duration.toFixed(1)}s`;
       const deathsLabel = `deaths: ${heroDeaths}`;
       const sacrificesLabel = `sacrifices: ${sidekickDeaths}`;
@@ -1559,7 +1568,7 @@ function winLevel() {
 
       const origin = game.cameras.main.scrollX;
 
-      addEndLevelLabel(origin + 130, 100, 0, 64, levelLabel);
+      addEndLevelLabel(origin + 130, 100, 0, 64, titleLabel);
       addEndLevelLabel(origin + 310, 200, 1, 32, durationLabel);
       addEndLevelLabel(origin + 310, 250, 2, 32, deathsLabel);
       addEndLevelLabel(origin + 310, 300, 3, 32, sacrificesLabel);
