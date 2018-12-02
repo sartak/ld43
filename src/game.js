@@ -4,15 +4,24 @@ import heroSprite from './assets/hero.png';
 import sidekickSprite from './assets/sidekick.png';
 
 import enemySpriteA from './assets/enemy-a.png';
+import enemySpriteB from './assets/enemy-b.png';
+import enemySpriteC from './assets/enemy-c.png';
+import enemySpriteK from './assets/enemy-k.png';
+import enemySpriteL from './assets/enemy-l.png';
 import enemySpriteX from './assets/enemy-x.png';
 
-import skyImage2 from './assets/sky-2.png';
 import groundImage from './assets/ground.png';
 import wallImage from './assets/wall.png';
 import hpbarImage from './assets/hpbar.png';
 
 import level1Background from './assets/level-1.png';
 import level1Map from './assets/level-1.map';
+
+import level2Background from './assets/level-2.png';
+import level2Map from './assets/level-2.map';
+
+import level3Background from './assets/level-3.png';
+import level3Map from './assets/level-3.map';
 
 import blockA from './assets/block-a.png';
 
@@ -28,6 +37,7 @@ const config = {
   parent: 'engine',
   width: 800,
   height: 600,
+  levelNames: ['level-1', 'level-2', 'level-3'],
   physics: {
     default: 'matter',
     matter: {
@@ -41,21 +51,38 @@ const config = {
   },
 };
 
-const state : any = {
-  level: { name: 'level-1',
+function createLevel(index) {
+  const level = {
+    index,
+    name: config.levelNames[index],
     heroDeaths: 0,
-    sidekickDeaths: 0 },
+    sidekickDeaths: 0,
+    enemies: [],
+    waveEnemies: [],
+    throwState: 'calm',
+    wigglePhase: 0,
+    facingRight: true,
+    endLabels: [],
+  };
+
+  if (DEBUG) {
+    window.level = level;
+  }
+  return level;
+}
+
+const state : any = {
+  level: createLevel(0),
   physicsShapes,
-  enemies: [],
-  waveEnemies: [],
   keys: {},
-  throwState: 'calm',
-  wigglePhase: 0,
-  facingRight: true,
 };
 
 const enemyDefaults = {
   a: { hp: 100 },
+  b: { hp: 150 },
+  c: { hp: 50 },
+  k: { hp: 400 },
+  l: { hp: 400 },
   x: { hp: 200 },
 };
 
@@ -88,15 +115,22 @@ function preload() {
   game.load.image('hero', heroSprite);
   game.load.image('sidekick', sidekickSprite);
   game.load.image('enemy-a', enemySpriteA);
+  game.load.image('enemy-b', enemySpriteB);
+  game.load.image('enemy-c', enemySpriteC);
+  game.load.image('enemy-k', enemySpriteK);
+  game.load.image('enemy-l', enemySpriteL);
   game.load.image('enemy-x', enemySpriteX);
   game.load.image('level-1', level1Background);
-  game.load.image('sky-2', skyImage2);
+  game.load.image('level-2', level2Background);
+  game.load.image('level-3', level3Background);
   game.load.image('ground', groundImage);
   game.load.image('wall', wallImage);
   game.load.image('hpbar', hpbarImage);
   game.load.image('block-a', blockA);
 
   game.load.text('level-1', level1Map);
+  game.load.text('level-2', level2Map);
+  game.load.text('level-3', level3Map);
 }
 
 function createHero({ x, y }, isInitial) {
@@ -267,7 +301,8 @@ function updateHpBarFor(owner) {
 }
 
 function updateEnemy(enemy) {
-  const { hero, waveEnemies, game, matter } = state;
+  const { game, matter, level } = state;
+  const { hero, waveEnemies } = level;
 
   if (enemy.isDying) {
     return;
@@ -281,8 +316,8 @@ function updateEnemy(enemy) {
     enemy.isDying = true;
 
     if (enemy.enemyType === 'x') {
-      removeEnemy(enemy, false);
-      state.levelExit = {
+      removeEnemy(enemy, true);
+      level.exit = {
         x: enemy.x,
         y: enemy.y,
         sprite: enemy,
@@ -295,7 +330,7 @@ function updateEnemy(enemy) {
         angle: enemy.angle - 45,
         duration: 500,
         onComplete: () => {
-          removeEnemy(enemy, true);
+          removeEnemy(enemy, false);
         },
       });
     }
@@ -345,17 +380,14 @@ function removeHpBarFor(owner) {
   border.destroy();
 }
 
-function removeEnemy(enemy, removeVisuals) {
-  const { matter } = state;
+function removeEnemy(enemy, isExit) {
+  const { matter, level } = state;
 
-  if (removeVisuals) {
-    removeHpBarFor(enemy);
-  }
+  removeHpBarFor(enemy);
+  level.enemies = level.enemies.filter(e => e !== enemy);
+  level.waveEnemies = level.waveEnemies.filter(e => e !== enemy);
 
-  state.enemies = state.enemies.filter(e => e !== enemy);
-  state.waveEnemies = state.waveEnemies.filter(e => e !== enemy);
-
-  if (removeVisuals) {
+  if (!isExit) {
     enemy.destroy();
   }
 }
@@ -418,7 +450,7 @@ function createCeiling() {
 function createMap() {
   const { matter, game, level } = state;
 
-  const map = state.map = game.cache.text.get(level.name);
+  const map = level.map = game.cache.text.get(level.name);
 
   const rows = map.split('\n');
   const cols = rows[0].split('').map(col => []);
@@ -442,12 +474,12 @@ function createMap() {
       }
 
       if (spec === '@') {
-        state.initialHeroPosition = {
+        level.initialHeroPosition = {
           x,
           y: y - 32,
         };
       } else if (spec === '$') {
-        state.initialSidekickPosition = {
+        level.initialSidekickPosition = {
           x,
           y: y - 8,
         };
@@ -468,13 +500,21 @@ function createMap() {
           x,
           y: y - 28,
         });
-        state.enemies.push(enemy);
+        level.enemies.push(enemy);
         waveEnemies.push(enemy);
         waves.push({
           enemies: waveEnemies,
           x_lock: x - config.width + 64,
           i: waves.length,
         });
+      } else if (spec === '>') {
+        // exit but not an enemy
+        const sprite = game.add.sprite(x, y - 28, 'enemy-x');
+        level.exit = {
+          x,
+          y: y - 28,
+          sprite,
+        };
       } else if (spec === '|') {
         waves.push({
           enemies: waveEnemies,
@@ -490,7 +530,7 @@ function createMap() {
           x,
           y: y - 16,
         });
-        state.enemies.push(enemy);
+        level.enemies.push(enemy);
         waveEnemies.push(enemy);
       } else {
         // lowercase is block
@@ -507,29 +547,105 @@ function createMap() {
   level.blocks = blocks;
 }
 
+function setupLevel(isInitial) {
+  const { game, level } = state;
+
+  level.background = game.add.sprite(400, 300, level.name);
+
+  createMap();
+
+  game.cameras.main.setBounds(0, 0, level.width, 1080 * 2);
+  game.cameras.main.scrollX = -112;
+
+  if (isInitial) {
+    level.readyToPlay = true;
+    const hero = level.hero = createHero(level.initialHeroPosition, true);
+
+    const sidekick = level.sidekick = createSidekick(level.initialSidekickPosition, true);
+
+    // target, round pixels for jitter, lerpx, lerpy, offsetx, offsety
+    game.cameras.main.startFollow(hero, false, 0.05, 0, 0, 270);
+  } else {
+    level.background.alpha = 0;
+    game.tweens.add({
+      targets: level.background,
+      alpha: 1,
+      duration: Math.sqrt(screen.width/32) * 200 + 500,
+      onComplete: () => {
+        level.readyToPlay = true;
+        const hero = level.hero = createHero(level.initialHeroPosition, true);
+
+        const sidekick = level.sidekick = createSidekick(level.initialSidekickPosition, true);
+
+        // target, round pixels for jitter, lerpx, lerpy, offsetx, offsety
+        game.cameras.main.startFollow(hero, false, 0.05, 0, 0, 270);
+
+        game.matter.resume();
+      },
+    });
+
+    level.enemies.forEach((enemy) => {
+      const { x, y } = enemy;
+      const dx = x - level.initialHeroPosition.x;
+      const dy = y - level.initialHeroPosition.y;
+      if (dx*dx + dy*dy > 2 * config.width * config.width) {
+        return;
+      }
+
+      updateHpBarFor(enemy);
+      [enemy, enemy.hpBar.fill, enemy.hpBar.border].forEach((component) => {
+        component.alpha = 0;
+        component.y -= 100;
+
+        game.tweens.add({
+          targets: component,
+          y: component.y + 100,
+          alpha: 1,
+          ease: 'Cubic.easeOut',
+          delay: 200 + Math.sqrt(x/32) * 200,
+          duration: 1000,
+        });
+      });
+    });
+
+    level.blocks.forEach((block) => {
+      const { x, y } = block;
+      const dx = x - level.initialHeroPosition.x;
+      const dy = y - level.initialHeroPosition.y;
+      if (dx*dx + dy*dy > 2 * config.width * config.width) {
+        return;
+      }
+
+      const xOffset = Phaser.Math.Between(-30, 30);
+      const yOffset = Phaser.Math.Between(-30, 30);
+      block.x -= xOffset;
+      block.y -= yOffset;
+      block.alpha = 0.5;
+      game.tweens.add({
+        targets: block,
+        x: block.x + xOffset,
+        y: block.y + yOffset,
+        alpha: 1,
+        ease: 'Cubic.easeOut',
+        delay: Math.sqrt(x/32) * 200,
+        duration: Phaser.Math.Between(500, 1000),
+      });
+    });
+  }
+}
+
 function create() {
   const { game, level } = state;
   const { matter } = game;
 
   state.matter = matter;
 
-  state.background = game.add.sprite(400, 300, level.name);
-
-  createMap();
+  setupLevel(true);
 
   const ground = state.ground = createGround();
   const ceiling = state.ceiling = createCeiling();
   const leftWall = state.leftWall = createWall(false, -40, 400);
   const rightWall = state.rightWall = createWall(true, level.width + 40, 400);
-
-  const hero = state.hero = createHero(state.initialHeroPosition, true);
-
-  const sidekick = state.sidekick = createSidekick(state.initialSidekickPosition, true);
-
-  // target, round pixels for jitter, lerpx, lerpy, offsetx, offsety
-  game.cameras.main.startFollow(hero, false, 0.05, 0, 0, 270);
-
-  game.cameras.main.setBounds(0, 0, level.width, 1080 * 2);
 
   state.cursors = game.input.keyboard.createCursorKeys();
 
@@ -569,7 +685,13 @@ function create() {
 }
 
 function collisionStart(event) {
-  const { hero, sidekick, zDown, matter, enemies, game } = state;
+  const { zDown, matter, game, level } = state;
+  const { hero, sidekick, enemies, readyToPlay } = level;
+
+  if (!readyToPlay) {
+    return;
+  }
+
   event.pairs.forEach(({ bodyA, bodyB, separation }) => {
     const a = bodyA.gameObject;
     const b = bodyB.gameObject;
@@ -593,12 +715,12 @@ function collisionStart(event) {
     }
 
     const isSensor = Object.keys(hero.sensors).map(key => hero.sensors[key]).find(sensor => (sensor.id === bodyA.id || sensor.id === bodyB.id));
-    if (isSensor && state.throwState === 'pull' && zDown && (a.name === 'sidekick' || b.name === 'sidekick')) {
-      state.throwState = 'hold';
+    if (isSensor && level.throwState === 'pull' && zDown && (a.name === 'sidekick' || b.name === 'sidekick')) {
+      level.throwState = 'hold';
 
-      if (state.sidekickAngleRestore) {
-        state.sidekickAngleRestore.stop();
-        delete state.sidekickAngleRestore;
+      if (level.sidekickAngleRestore) {
+        level.sidekickAngleRestore.stop();
+        delete level.sidekickAngleRestore;
       }
 
       sidekick.angle = 0;
@@ -613,12 +735,29 @@ function collisionStart(event) {
       const bMomentum = Vector.mult(b.cachedVelocity, b.body.mass);
       const relativeMomentum = Vector.sub(aMomentum, bMomentum);
       const impact = Vector.magnitude(relativeMomentum);
-      const damage = impact / 5;
+      const baseDamage = impact / 5;
       const duration = impact;
-      a.currentHP = Math.max(0, a.currentHP - damage);
-      b.currentHP = Math.max(0, b.currentHP - damage);
 
-      [a, b].forEach((character) => {
+      let damageA = baseDamage;
+      let damageB = baseDamage;
+
+      if (a === hero) {
+        damageB *= 0.2;
+      }
+
+      if (b === hero) {
+        damageA *= 0.2;
+      }
+
+      a.currentHP = Math.max(0, a.currentHP - damageA);
+      b.currentHP = Math.max(0, b.currentHP - damageB);
+
+      [
+        { character: a,
+          damage: damageA },
+        { character: b,
+          damage: damageB },
+      ].forEach(({ character, damage }) => {
         const percent = damage / character.maxHP;
         let start = 0;
         const end = damage * 3;
@@ -657,7 +796,12 @@ function collisionStart(event) {
 }
 
 function collisionEnd(event) {
-  const { hero } = state;
+  const { level } = state;
+  const { hero, readyToPlay } = level;
+
+  if (!readyToPlay) {
+    return;
+  }
 
   event.pairs.forEach(({ bodyA, bodyB, separation }) => {
     const a = bodyA.gameObject;
@@ -683,13 +827,92 @@ function collisionEnd(event) {
 
 // parameter t is milliseconds since load
 function update() {
-  const { waveEnemies, enemies, game, level, victory } = state;
+  const { game, level, keys } = state;
+  const { waveEnemies, enemies, victory } = level;
+
+  if (!level.readyToPlay) {
+    return;
+  }
 
   if (!level.startTime) {
     level.startTime = new Date();
   }
 
+  if (!state.startTime) {
+    state.startTime = new Date();
+  }
+
   if (victory) {
+    if (keys.Z.isDown && level.advanceReady && !level.advancing) {
+      level.advancing = true;
+
+      level.endLabels.forEach((label, i) => {
+        game.tweens.add({
+          targets: label,
+          alpha: 0,
+          y: label.y + 20,
+          delay: i * 100,
+          duration: 500,
+        });
+      });
+
+      game.tweens.add({
+        targets: level.background,
+        alpha: 0,
+        duration: 500,
+      });
+
+      game.tweens.add({
+        targets: level.hero,
+        alpha: 0,
+        delay: 500,
+        duration: 1000,
+      });
+
+      game.tweens.add({
+        targets: level.sidekick,
+        alpha: 0,
+        duration: 500,
+      });
+
+      game.time.addEvent({
+        delay: 2000,
+        callback: () => {
+          game.cameras.main.stopFollow();
+          game.cameras.main.scrollX = 0;
+
+          level.background.destroy();
+          level.background = null;
+
+          removeHpBarFor(level.hero);
+          level.hero.destroy();
+          level.hero = null;
+
+          removeHpBarFor(level.sidekick);
+          level.sidekick.destroy();
+          level.sidekick = null;
+
+          level.enemies.forEach((enemy) => {
+            removeEnemy(enemy, false);
+          });
+          level.enemies = null;
+
+          level.blocks.forEach((block) => {
+            block.destroy();
+          });
+          level.blocks = null;
+
+          level.endLabels.forEach((endLabel) => {
+            endLabel.destroy();
+          });
+          level.endLabels = null;
+
+          state.level = createLevel(level.index + 1);
+          setupLevel(false);
+        },
+      });
+    }
+
     return;
   }
 
@@ -700,14 +923,14 @@ function update() {
   waveEnemies.forEach(enemy => updateEnemy(enemy));
 
   if (waveEnemies.length === 0) {
-    delete state.camera_lock;
+    delete level.camera_lock;
 
     if (level.waves.length) {
       const wave = level.waves.shift();
-      state.waveEnemies = wave.enemies;
-      state.x_lock = wave.x_lock;
+      level.waveEnemies = wave.enemies;
+      level.x_lock = wave.x_lock;
     } else {
-      delete state.x_lock;
+      delete level.x_lock;
     }
   }
 
@@ -715,13 +938,14 @@ function update() {
 }
 
 function updateCameraAndBounds() {
-  const { level, x_lock, camera_lock, game, ground, ceiling, leftWall, rightWall } = state;
+  const { game, level, ground, ceiling, leftWall, rightWall } = state;
+  const { x_lock, camera_lock, background } = level;
 
   let leftBound = Math.min(game.cameras.main.scrollX, level.width - config.width);
 
   if (x_lock && (leftBound > x_lock || camera_lock)) {
     leftBound = game.cameras.main.scrollX = x_lock;
-    state.camera_lock = true;
+    level.camera_lock = true;
     game.cameras.main.setBounds(leftBound, 0, 0, 0);
   } else {
     game.cameras.main.setBounds(leftBound, 0, level.width - leftBound, 0);
@@ -747,13 +971,14 @@ function updateCameraAndBounds() {
   // parallax should depend on bg width and level width
   // worldView.x = 0 means we show bg's left border
   // worldView.x = lvl.width means we show bg's right border
-  const progress = state.game.cameras.main.scrollX / (level.width - config.width);
-  state.background.x = state.background.width * 0.5 + progress * (level.width - state.background.width);
+  const progress = game.cameras.main.scrollX / (level.width - config.width);
+  background.x = background.width * 0.5 + progress * (level.width - background.width);
 }
 
 function respawnIfNeeded(character) {
-  const { game, hero, background, level } = state;
-  let { sidekick } = state;
+  const { game, level } = state;
+  const { hero, background } = level;
+  let { sidekick } = level;
 
   if (character.currentHP > 0) {
     return;
@@ -766,11 +991,11 @@ function respawnIfNeeded(character) {
   if (character === hero) {
     level.heroDeaths++;
 
-    if (state.throwState === 'hold') {
-      sidekick = state.sidekick = replaceSidekick(sidekick);
+    if (level.throwState === 'hold') {
+      sidekick = level.sidekick = replaceSidekick(sidekick);
     }
 
-    state.throwState = 'calm';
+    level.throwState = 'calm';
 
     background.heroDieTween = game.tweens.addCounter({
       from: 0,
@@ -784,7 +1009,7 @@ function respawnIfNeeded(character) {
     });
   } else if (character === sidekick) {
     level.sidekickDeaths++;
-    state.throwState = 'calm';
+    level.throwState = 'calm';
   }
 
   game.tweens.add({
@@ -836,8 +1061,9 @@ function respawnIfNeeded(character) {
 }
 
 function updateSidekick() {
-  const { game, hero, keys } = state;
-  let { sidekick } = state;
+  const { game, keys, level } = state;
+  const { hero } = level;
+  let { sidekick } = level;
 
   if (sidekick.x > hero.x + config.width) {
     sidekick.setVelocityX(0);
@@ -857,21 +1083,21 @@ function updateSidekick() {
   const zDownStart = Phaser.Input.Keyboard.JustDown(keys.Z);
   state.zDown = keys.Z.isDown;
 
-  switch (state.throwState) {
+  switch (level.throwState) {
     default:
       break;
 
     case 'calm':
       if (keys.Z.isDown) {
-        state.throwState = 'pull';
+        level.throwState = 'pull';
       } else if (sidekick.currentHP / sidekick.maxHP < 0.25) {
         // crawl away
         sidekick.applyForce({
           x: dx < 0 ? 0.002 : -0.002,
           y: 0,
         });
-        sidekick.setAngularVelocity(state.wigglePhase < 5 ? 0.01 : -0.01);
-        state.wigglePhase = (state.wigglePhase + 1) % 10;
+        sidekick.setAngularVelocity(level.wigglePhase < 5 ? 0.01 : -0.01);
+        level.wigglePhase = (level.wigglePhase + 1) % 10;
       }
       break;
     case 'pull':
@@ -892,8 +1118,8 @@ function updateSidekick() {
 
           // tween toward zero
           //
-          if (!state.sidekickAngleRestore) {
-            state.sidekickAngleRestore = game.tweens.add({
+          if (!level.sidekickAngleRestore) {
+            level.sidekickAngleRestore = game.tweens.add({
               targets: sidekick,
               angle: 0,
               duration: 200,
@@ -902,48 +1128,48 @@ function updateSidekick() {
         } else if (sidekick.currentHP / sidekick.maxHP >= 0.5) {
           // wiggle but don't move. and only when he's not
           // totally afraid of hero
-          sidekick.setAngularVelocity(state.wigglePhase < 5 ? 0.02 : -0.02);
+          sidekick.setAngularVelocity(level.wigglePhase < 5 ? 0.02 : -0.02);
           sidekick.applyForce({
-            x: state.wigglePhase < 5 ? 0.01 : -0.01,
+            x: level.wigglePhase < 5 ? 0.01 : -0.01,
             y: 0,
           });
 
-          state.wigglePhase = (state.wigglePhase + 1) % 10;
+          level.wigglePhase = (level.wigglePhase + 1) % 10;
         }
       } else {
-        state.throwState = 'calm';
+        level.throwState = 'calm';
 
-        if (state.sidekickAngleRestore) {
-          state.sidekickAngleRestore.stop();
-          delete state.sidekickAngleRestore;
+        if (level.sidekickAngleRestore) {
+          level.sidekickAngleRestore.stop();
+          delete level.sidekickAngleRestore;
         }
       }
       break;
     case 'hold': {
-      sidekick.x = hero.x + (state.facingRight ? 10 : -10) + sidekick.xHold;
+      sidekick.x = hero.x + (level.facingRight ? 10 : -10) + sidekick.xHold;
       sidekick.y = hero.y + 10 + sidekick.yHold;
 
       if (zDownStart) {
-        state.throwState = 'throw';
+        level.throwState = 'throw';
 
         // recreate a new sidekick because re-adding to
         // physics seems unsupported
-        sidekick = state.sidekick = replaceSidekick(sidekick);
+        sidekick = level.sidekick = replaceSidekick(sidekick);
 
         sidekick.applyForce({
-          x: state.facingRight ? 0.75 : -0.75,
+          x: level.facingRight ? 0.75 : -0.75,
           y: Phaser.Math.FloatBetween(-0.20, 0),
         });
 
         hero.applyForce({
-          x: state.facingRight ? -0.1 : 0.1,
+          x: level.facingRight ? -0.1 : 0.1,
           y: -0.01,
         });
 
         game.time.addEvent({
           delay: 200,
           callback: () => {
-            state.throwState = 'calm';
+            level.throwState = 'calm';
           },
         });
       }
@@ -955,15 +1181,21 @@ function updateSidekick() {
 }
 
 function winLevel() {
-  const { background, game, matter, hero, sidekick, level, levelExit } = state;
+  const { game, matter, level } = state;
+  const { background } = level;
+
+  const lastLevel = level.name === config.levelNames[config.levelNames.length-1];
+  if (lastLevel) {
+    state.endTime = new Date();
+  }
 
   level.endTime = new Date();
-  const { blocks, startTime, endTime, heroDeaths, sidekickDeaths } = level;
+  const { hero, sidekick, blocks, startTime, endTime, heroDeaths, sidekickDeaths, exit } = level;
 
   const duration = (endTime.getTime() - startTime.getTime()) / 1000;
 
   matter.world.pause();
-  state.victory = true;
+  level.victory = true;
 
   background.victoryTween = game.tweens.addCounter({
     from: 0,
@@ -992,19 +1224,19 @@ function winLevel() {
     });
   });
 
-  if (state.throwState === 'hold') {
+  if (level.throwState === 'hold') {
     game.tweens.add({
       targets: sidekick,
-      x: sidekick.x + (state.facingRight ? 400 : -400),
+      x: sidekick.x + (level.facingRight ? 400 : -400),
       ease: 'Quad.easeOut',
       duration: 500,
     });
   }
 
-  if (levelExit && levelExit.sprite) {
+  if (exit && exit.sprite) {
     game.tweens.add({
-      targets: levelExit.sprite,
-      y: levelExit.sprite.y - 30,
+      targets: exit.sprite,
+      y: exit.sprite.y - 30,
       angle: 12,
       alpha: 0,
       ease: 'Cubic.easeIn',
@@ -1016,6 +1248,10 @@ function winLevel() {
     const { x, y } = block;
     const dx = x - hero.x;
     const dy = y - hero.y;
+    if (dx*dx + dy*dy > 2 * config.width * config.width) {
+      return;
+    }
+
     const theta = Math.atan2(dy, dx);
 
     game.tweens.add({
@@ -1031,7 +1267,7 @@ function winLevel() {
   game.time.addEvent({
     delay: 2000,
     callback: () => {
-      const levelLabel = 'level 1 complete!!';
+      const levelLabel = `level ${level.index+1} complete!!`;
       const durationLabel = `time: ${duration.toFixed(1)}s`;
       const deathsLabel = `deaths: ${heroDeaths}`;
       const sacrificesLabel = `sacrifices: ${sidekickDeaths}`;
@@ -1043,13 +1279,16 @@ function winLevel() {
       addEndLevelLabel(origin + 310, 200, 1, 32, durationLabel);
       addEndLevelLabel(origin + 310, 250, 2, 32, deathsLabel);
       addEndLevelLabel(origin + 310, 300, 3, 32, sacrificesLabel);
-      addEndLevelLabel(origin + 225, 350, 5, 32, continueLabel);
+
+      if (!lastLevel) {
+        addEndLevelLabel(origin + 225, 350, 5, 32, continueLabel);
+      }
     },
   });
 }
 
 function addEndLevelLabel(x, y, i, fontSize, text) {
-  const { game } = state;
+  const { game, level } = state;
   const label = game.add.text(
     x,
     y + 20,
@@ -1063,9 +1302,15 @@ function addEndLevelLabel(x, y, i, fontSize, text) {
   label.setStroke('#000000', 12);
   label.alpha = 0;
 
+  level.endLabels.push(label);
+
   game.time.addEvent({
-    delay: 1000*i,
+    delay: 400*i,
     callback: () => {
+      if (i === 5) {
+        level.advanceReady = true;
+      }
+
       game.tweens.add({
         targets: label,
         alpha: 1,
@@ -1094,7 +1339,8 @@ function addEndLevelLabel(x, y, i, fontSize, text) {
 }
 
 function updateHero() {
-  const { game, matter, hero, cursors, keys, throwState, sidekick, levelExit } = state;
+  const { game, matter, cursors, keys, level } = state;
+  const { hero, throwState, sidekick, exit } = level;
 
   updateCachedVelocityFor(hero);
   updateHpBarFor(hero);
@@ -1108,9 +1354,9 @@ function updateHero() {
     return;
   }
 
-  if (levelExit) {
-    const dx = levelExit.x - hero.x;
-    const dy = levelExit.y - hero.y;
+  if (exit) {
+    const dx = exit.x - hero.x;
+    const dy = exit.y - hero.y;
     if (dx*dx+dy*dy < 30*30) {
       winLevel();
       return;
@@ -1119,7 +1365,7 @@ function updateHero() {
 
   const { velocity } = hero.body;
   if (cursors.left.isDown) {
-    state.facingRight = false;
+    level.facingRight = false;
     hero.setFlipX(true);
     hero.applyForce({
       x: throwState === 'hold' ? -0.025 : -0.1,
@@ -1128,7 +1374,7 @@ function updateHero() {
   }
 
   if (cursors.right.isDown) {
-    state.facingRight = true;
+    level.facingRight = true;
     hero.setFlipX(false);
     hero.applyForce({
       x: throwState === 'hold' ? 0.025 : 0.1,

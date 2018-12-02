@@ -183,5 +183,101 @@
 				]
 			}
 		]
+	},
+	"enemy-b": {
+		"type": "fromPhysicsEditor",
+		"label": "enemy-b",
+		"isStatic": false,
+		"density": 0.10000000149011612,
+		"restitution": 0,
+		"friction": 0.10000000149011612,
+		"frictionAir": 0.009999999776482582,
+		"frictionStatic": 0.5,
+		"collisionFilter": {
+			"group": 0,
+			"category": 1,
+			"mask": 255
+		},
+		"fixtures": [
+			{
+				"label": "",
+				"isSensor": false,
+				"vertices": [
+					[ { "x":70, "y":100 }, { "x":70, "y":0 }, { "x":0, "y":0 }, { "x":0, "y":100 } ]
+				]
+			}
+		]
+	},
+	"enemy-c": {
+		"type": "fromPhysicsEditor",
+		"label": "enemy-c",
+		"isStatic": false,
+		"density": 0.10000000149011612,
+		"restitution": 0,
+		"friction": 0.10000000149011612,
+		"frictionAir": 0.009999999776482582,
+		"frictionStatic": 0.5,
+		"collisionFilter": {
+			"group": 0,
+			"category": 1,
+			"mask": 255
+		},
+		"fixtures": [
+			{
+				"label": "",
+				"isSensor": false,
+				"vertices": [
+					[ { "x":70, "y":100 }, { "x":70, "y":0 }, { "x":0, "y":0 }, { "x":0, "y":100 } ]
+				]
+			}
+		]
+	},
+	"enemy-k": {
+		"type": "fromPhysicsEditor",
+		"label": "enemy-k",
+		"isStatic": false,
+		"density": 0.10000000149011612,
+		"restitution": 0,
+		"friction": 0.10000000149011612,
+		"frictionAir": 0.009999999776482582,
+		"frictionStatic": 0.5,
+		"collisionFilter": {
+			"group": 0,
+			"category": 1,
+			"mask": 255
+		},
+		"fixtures": [
+			{
+				"label": "",
+				"isSensor": false,
+				"vertices": [
+					[ { "x":140, "y":200 }, { "x":140, "y":0 }, { "x":0, "y":0 }, { "x":0, "y":200 } ]
+				]
+			}
+		]
+	},
+	"enemy-l": {
+		"type": "fromPhysicsEditor",
+		"label": "enemy-l",
+		"isStatic": false,
+		"density": 0.10000000149011612,
+		"restitution": 0,
+		"friction": 0.10000000149011612,
+		"frictionAir": 0.009999999776482582,
+		"frictionStatic": 0.5,
+		"collisionFilter": {
+			"group": 0,
+			"category": 1,
+			"mask": 255
+		},
+		"fixtures": [
+			{
+				"label": "",
+				"isSensor": false,
+				"vertices": [
+					[ { "x":140, "y":200 }, { "x":140, "y":0 }, { "x":0, "y":0 }, { "x":0, "y":200 } ]
+				]
+			}
+		]
 	}
 }
