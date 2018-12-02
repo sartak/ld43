@@ -351,7 +351,7 @@ function updateEnemy(enemy) {
     enemy.isDying = true;
 
     if (enemy.enemyType === 'x') {
-      const sprite = game.add.sprite(enemy.x, enemy.y, 'exit');
+      const sprite = game.add.sprite(enemy.x, enemy.y-32, 'exit');
       removeEnemy(enemy);
       level.exit = {
         x: sprite.x,
@@ -531,7 +531,7 @@ function createMap() {
         const enemy = createEnemy({
           type: 'x',
           x,
-          y: y - 28,
+          y: y + 4,
         });
         level.enemies.push(enemy);
         waveEnemies.push(enemy);
@@ -1405,11 +1405,19 @@ function winLevel() {
   if (exit && exit.sprite) {
     game.tweens.add({
       targets: exit.sprite,
-      y: exit.sprite.y - 30,
-      angle: 12,
-      alpha: 0,
-      ease: 'Cubic.easeIn',
-      duration: 500,
+      y: exit.sprite.y - 175,
+      ease: 'Cubic.easeOut',
+      duration: 1000,
+      onComplete: () => {
+        game.tweens.add({
+          targets: exit.sprite,
+          alpha: 0,
+          y: exit.sprite.y + 20,
+          ease: 'Cubic.easeIn',
+          delay: 2000,
+          duration: 500,
+        });
+      },
     });
   }
 
