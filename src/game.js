@@ -509,7 +509,7 @@ function createMap() {
         });
       } else if (spec === '>') {
         // exit but not an enemy
-        const sprite = game.add.sprite(x, y - 28, 'enemy-x');
+        const sprite = game.add.sprite(x, y - 28, 'exit');
         level.exit = {
           x,
           y: y - 28,
