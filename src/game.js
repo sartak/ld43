@@ -129,7 +129,8 @@ export default function startGame() {
 
 function preload() {
   const game = state.game = this;
-  game.load.image('hero', heroSprite);
+  game.load.spritesheet('hero', heroSprite, { frameWidth: 70,
+    frameHeight: 100 });
   game.load.spritesheet('sidekick', sidekickSprite, { frameWidth: 70,
     frameHeight: 70 });
   game.load.image('enemy-a', enemySpriteA);
@@ -171,7 +172,7 @@ function preload() {
 function createHero({ x, y }, isInitial) {
   const { game, matter } = state;
 
-  const hero = matter.add.sprite(0, 0, 'hero', null);
+  const hero = matter.add.sprite(0, 0, 'hero', null, { shape: physicsShapes.hero });
 
   const { Body, Bodies } = Phaser.Physics.Matter.Matter;
   const { width: w, height: h } = hero;
@@ -698,6 +699,29 @@ function create() {
   const rightWall = state.rightWall = createWall(true, level.width + 40, 400);
 
   state.cursors = game.input.keyboard.createCursorKeys();
+
+  game.anims.create({
+    key: 'neutral',
+    frames: [
+      {
+        key: 'hero',
+        frame: 0,
+      },
+    ],
+  });
+
+  game.anims.create({
+    key: 'walk',
+    frames: game.anims.generateFrameNumbers(
+      'hero',
+      {
+        start: 0,
+        end: 2,
+      },
+    ),
+    frameRate: 5,
+    repeat: -1,
+  });
 
   game.anims.create({
     key: 20,
@@ -1405,14 +1429,15 @@ function winLevel() {
   if (exit && exit.sprite) {
     game.tweens.add({
       targets: exit.sprite,
+      x: hero.x,
       y: exit.sprite.y - 175,
-      ease: 'Cubic.easeOut',
+      ease: 'Cubic.easeInOut',
       duration: 1000,
       onComplete: () => {
         game.tweens.add({
           targets: exit.sprite,
           alpha: 0,
-          y: exit.sprite.y + 20,
+          y: exit.sprite.y + 40,
           ease: 'Cubic.easeIn',
           delay: 2000,
           duration: 500,
@@ -1548,15 +1573,19 @@ function updateHero() {
       x: throwState === 'hold' ? -0.025 : -0.1,
       y: 0,
     });
-  }
 
-  if (cursors.right.isDown) {
+    hero.anims.play('walk', true);
+  } else if (cursors.right.isDown) {
     level.facingRight = true;
     hero.setFlipX(false);
     hero.applyForce({
       x: throwState === 'hold' ? 0.025 : 0.1,
       y: 0,
     });
+
+    hero.anims.play('walk', true);
+  } else {
+    hero.anims.play('neutral');
   }
 
   // if we are walking while holding
