@@ -40,6 +40,7 @@ class GameMetadata extends Component<{}> {
   render() {
     return (
       <div className="game-metadata">
+        <p>Pigheaded Pirate</p>
         <p>
           created by
           <br />
@@ -63,8 +64,8 @@ class GameMetadata extends Component<{}> {
         <p>
           code at
           <br />
-          <a className="url" href="https://github.com/sartak/LD43">
-            github.com/sartak/LD43
+          <a className="url" href="https://github.com/sartak/pigheaded-pirate">
+            github.com/sartak/pigheaded-pirate
           </a>
         </p>
       </div>

@@ -712,13 +712,24 @@ function create() {
 
   game.anims.create({
     key: 'walk',
-    frames: game.anims.generateFrameNumbers(
-      'hero',
+    frames: [
       {
-        start: 0,
-        end: 2,
+        key: 'hero',
+        frame: 0,
       },
-    ),
+      {
+        key: 'hero',
+        frame: 1,
+      },
+      {
+        key: 'hero',
+        frame: 0,
+      },
+      {
+        key: 'hero',
+        frame: 2,
+      },
+    ],
     frameRate: 8,
     repeat: -1,
   });
@@ -1188,7 +1199,6 @@ function respawnIfNeeded(character) {
       character.setAngularVelocity(0);
 
       if (character === sidekick) {
-        character.isRespawning = false;
         character.setVelocityY(0);
         character.angle = 45;
         game.tweens.add({
@@ -1196,6 +1206,11 @@ function respawnIfNeeded(character) {
           angle: -180,
           ease: 'Cubic.easeOut',
           duration: 1000,
+          onComplete: () => {
+            // I thought this wouldn't be needed, but it seems to be a
+            // crasher
+            character.isRespawning = false;
+          },
         });
       } else {
         character.setVelocityY(30);

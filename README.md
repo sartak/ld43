@@ -1,6 +1,6 @@
 # Play Live
 
-[https://ld43.sartak.org/](https://ld43.sartak.org/)
+[https://pigheaded-pirate.com/](https://pigheaded-pirate.com/)
 
 # Development
 

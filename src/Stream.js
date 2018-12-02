@@ -22,7 +22,7 @@ class StreamMetadata extends Component<{}> {
         <p>
           play now at:
           <br />
-          <span className="url">LD43.sartak.org</span>
+          <span className="url">pigheaded-pirate.com</span>
         </p>
         <p>
           @sartak
@@ -32,7 +32,7 @@ class StreamMetadata extends Component<{}> {
         <p>
           code at:
           <br />
-          <span className="url">github.com/sartak/LD43</span>
+          <span className="url">github.com/sartak/pigheaded-pirate</span>
         </p>
       </div>
     );
