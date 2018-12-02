@@ -1053,12 +1053,18 @@ function collisionEnd(event) {
 
 // parameter t is milliseconds since load
 function update() {
-  const { game, level, keys } = state;
+  const { game, level, keys, cursors } = state;
   const { waveEnemies, enemies, victory } = level;
 
   if (!level.readyToPlay) {
     return;
   }
+
+  state.zDownStart = Phaser.Input.Keyboard.JustDown(keys.Z);
+  const zDown = state.zDown = keys.Z.isDown;
+  state.leftDown = cursors.left.isDown;
+  state.rightDown = cursors.right.isDown;
+  state.upDown = cursors.up.isDown;
 
   if (!level.startTime) {
     level.startTime = new Date();
@@ -1069,7 +1075,7 @@ function update() {
   }
 
   if (victory) {
-    if (keys.Z.isDown && level.advanceReady && !level.advancing) {
+    if (zDown && level.advanceReady && !level.advancing) {
       level.advancing = true;
 
       level.endLabels.forEach((label, i) => {
@@ -1308,7 +1314,7 @@ function respawnIfNeeded(character) {
 }
 
 function updateSidekick() {
-  const { game, keys, level } = state;
+  const { game, level, zDown, zDownStart } = state;
   const { hero } = level;
   let { sidekick } = level;
 
@@ -1347,15 +1353,12 @@ function updateSidekick() {
     return;
   }
 
-  const zDownStart = Phaser.Input.Keyboard.JustDown(keys.Z);
-  state.zDown = keys.Z.isDown;
-
   switch (level.throwState) {
     default:
       break;
 
     case 'calm':
-      if (keys.Z.isDown) {
+      if (zDown) {
         level.throwState = 'pull';
       } else if (sidekick.currentHP / sidekick.maxHP < 0.25) {
         // crawl away
@@ -1368,7 +1371,7 @@ function updateSidekick() {
       }
       break;
     case 'pull':
-      if (keys.Z.isDown) {
+      if (zDown) {
         const tractable = dx*dx + dy*dy < 200*200;
         if (tractable) {
           // tractor beam towards hero
@@ -1624,7 +1627,7 @@ function addEndLevelLabel(x, y, i, fontSize, text) {
 }
 
 function updateHero() {
-  const { game, matter, cursors, keys, level } = state;
+  const { game, matter, level, leftDown, rightDown, upDown } = state;
   const { hero, throwState, sidekick, exit } = level;
 
   updateCachedVelocityFor(hero);
@@ -1649,7 +1652,7 @@ function updateHero() {
   }
 
   const { velocity } = hero.body;
-  if (cursors.left.isDown) {
+  if (leftDown) {
     level.facingRight = false;
     hero.setFlipX(true);
     hero.applyForce({
@@ -1658,7 +1661,7 @@ function updateHero() {
     });
 
     hero.anims.play('walk', true);
-  } else if (cursors.right.isDown) {
+  } else if (rightDown) {
     level.facingRight = true;
     hero.setFlipX(false);
     hero.applyForce({
@@ -1685,7 +1688,7 @@ function updateHero() {
 
     // velocity.x is not the right check, since it is like, desired
     // velocity not actual change in position
-    if (((cursors.left.isDown && hero.body.velocity.x < -2) || (cursors.right.isDown && hero.body.velocity.x > 2)) && hero.touching.bottom) {
+    if (((leftDown && hero.body.velocity.x < -2) || (rightDown && hero.body.velocity.x > 2)) && hero.touching.bottom) {
       if (!sidekick.yHoldTween) {
         if (sidekick.yRecoverTween) {
           sidekick.yRecoverTween.stop();
@@ -1734,7 +1737,7 @@ function updateHero() {
   }
 
   if (hero.touching.bottom) {
-    if (cursors.up.isDown && !level.jumpStarted && hero.body.velocity.y < 0.00001) {
+    if (upDown && !level.jumpStarted && hero.body.velocity.y < 0.00001) {
       level.jumpStarted = true;
       game.sound.play('jump');
       hero.applyForce({
