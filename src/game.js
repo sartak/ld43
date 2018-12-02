@@ -280,8 +280,11 @@ function updateEnemy(enemy) {
 
     if (enemy.enemyType === 'x') {
       removeEnemy(enemy, false);
-      state.levelExit = { x: enemy.x,
-        y: enemy.y };
+      state.levelExit = {
+        x: enemy.x,
+        y: enemy.y,
+        sprite: enemy,
+      };
     } else {
       game.tweens.add({
         targets: enemy,
@@ -938,7 +941,7 @@ function updateSidekick() {
 }
 
 function winLevel() {
-  const { background, game, matter, hero, sidekick, level } = state;
+  const { background, game, matter, hero, sidekick, level, levelExit } = state;
   const { blocks } = level;
   matter.world.pause();
   state.victory = true;
@@ -962,8 +965,19 @@ function winLevel() {
       targets: [border, fill],
       y: border.y - 30,
       alpha: 0,
+      angle: 12,
+      ease: 'Cubic.easeIn',
       duration: 500,
     });
+  });
+
+  game.tweens.add({
+    targets: levelExit.sprite,
+    y: levelExit.sprite.y - 30,
+    angle: 12,
+    alpha: 0,
+    ease: 'Cubic.easeIn',
+    duration: 500,
   });
 
   blocks.forEach((block) => {
