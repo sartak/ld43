@@ -747,21 +747,8 @@ function updateCameraAndBounds() {
   // parallax should depend on bg width and level width
   // worldView.x = 0 means we show bg's left border
   // worldView.x = lvl.width means we show bg's right border
-  if (!window.f) {
-    window.f = function (bg, left, lw, cw) {
-      const progress = left / (lw - cw);
-      return bg * 0.5 + progress * (lw - bg);
-
-      // on level-1,
-      // bg: 1200, left: 0,    lw: 4000, cw: 800  => 600
-      // bg: 1200, left: 3200, lw: 4000, cw: 800  => 3400
-      // for sky-2,
-      // bg: 2400, left: 0,    lw: 4000, cw: 800  => 1200
-      // bg: 2400, left: 3200, lw: 4000, cw: 800  => 2800
-    };
-  }
-
-  state.background.x = window.f(state.background.width, state.game.cameras.main.scrollX, level.width, config.width);
+  const progress = state.game.cameras.main.scrollX / (level.width - config.width);
+  state.background.x = state.background.width * 0.5 + progress * (level.width - state.background.width);
 }
 
 function respawnIfNeeded(character) {
