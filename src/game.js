@@ -678,6 +678,14 @@ function create() {
     game.input.keyboard.on('keydown_Y', () => {
       winLevel();
     });
+
+    game.input.keyboard.on('keydown_R', () => {
+      level.hero.currentHP = 0;
+    });
+
+    game.input.keyboard.on('keydown_S', () => {
+      level.sidekick.currentHP = 0;
+    });
   }
 
   ['Z', 'X', 'C'].forEach((code) => {
@@ -1082,7 +1090,7 @@ function respawnIfNeeded(character) {
     duration: 1000,
     onComplete: () => {
       character.y = state.ceiling.position.y + character.height / 2;
-      character.x = game.cameras.main.scrollX + 64;
+      character.x = game.cameras.main.scrollX + 64 + 16 + character.width / 2;
       character.isRespawnBeginning = false;
       character.currentHP = character.maxHP;
       character.setVelocityX(0);
