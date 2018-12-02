@@ -9,6 +9,7 @@ import enemySpriteC from './assets/enemy-c.png';
 import enemySpriteK from './assets/enemy-k.png';
 import enemySpriteL from './assets/enemy-l.png';
 import enemySpriteX from './assets/enemy-x.png';
+import exitSprite from './assets/exit.png';
 
 import groundImage from './assets/ground.png';
 import wallImage from './assets/wall.png';
@@ -120,6 +121,7 @@ function preload() {
   game.load.image('enemy-k', enemySpriteK);
   game.load.image('enemy-l', enemySpriteL);
   game.load.image('enemy-x', enemySpriteX);
+  game.load.image('exit', exitSprite);
   game.load.image('level-1', level1Background);
   game.load.image('level-2', level2Background);
   game.load.image('level-3', level3Background);
@@ -316,11 +318,12 @@ function updateEnemy(enemy) {
     enemy.isDying = true;
 
     if (enemy.enemyType === 'x') {
-      removeEnemy(enemy, true);
+      const sprite = game.add.sprite(enemy.x, enemy.y, 'exit');
+      removeEnemy(enemy);
       level.exit = {
-        x: enemy.x,
-        y: enemy.y,
-        sprite: enemy,
+        x: sprite.x,
+        y: sprite.y,
+        sprite,
       };
     } else {
       game.tweens.add({
@@ -330,7 +333,7 @@ function updateEnemy(enemy) {
         angle: enemy.angle - 45,
         duration: 500,
         onComplete: () => {
-          removeEnemy(enemy, false);
+          removeEnemy(enemy);
         },
       });
     }
@@ -380,16 +383,13 @@ function removeHpBarFor(owner) {
   border.destroy();
 }
 
-function removeEnemy(enemy, isExit) {
+function removeEnemy(enemy) {
   const { matter, level } = state;
 
   removeHpBarFor(enemy);
   level.enemies = level.enemies.filter(e => e !== enemy);
   level.waveEnemies = level.waveEnemies.filter(e => e !== enemy);
-
-  if (!isExit) {
-    enemy.destroy();
-  }
+  enemy.destroy();
 }
 
 function createGround() {
