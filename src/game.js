@@ -585,7 +585,7 @@ function createMap() {
 }
 
 function setupLevel(isInitial) {
-  const { game, level } = state;
+  const { game, level, leftWall, rightWall } = state;
 
   level.background = game.add.sprite(0, 0, level.name);
   level.background.setPosition(level.background.width * 0.5, 300);
@@ -605,6 +605,9 @@ function setupLevel(isInitial) {
     game.cameras.main.startFollow(hero, false, 0.05, 0, 0, 270);
     game.cameras.main.setBounds(0, 0, level.width, 1080 * 2);
   } else {
+    rightWall.x = level.width + 50;
+    leftWall.x = -50;
+
     level.background.alpha = 0;
     game.tweens.add({
       targets: level.background,
