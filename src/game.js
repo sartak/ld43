@@ -1610,6 +1610,11 @@ function updateHero() {
     hero.anims.play('walk', true);
   } else {
     hero.anims.play('neutral');
+
+    // shed velocity fast if you're on the ground
+    if (hero.touching.bottom) {
+      hero.setVelocityX(hero.body.velocity.x * 0.85);
+    }
   }
 
   // if we are walking while holding
