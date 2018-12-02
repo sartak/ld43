@@ -451,7 +451,7 @@ function updateEnemy(enemy) {
     }
 
     if (enemy.enemyType !== 'x') {
-      if (enemy.jumps && Phaser.Math.Between(1, 10) === 0 && hero.y < enemy.y - 20 && enemy.body.velocity.y < 0.1) {
+      if (enemy.jumps && hero.y < enemy.y - 20 && enemy.body.velocity.y < 0.1) {
         if (!enemy.nextJump || Date.now() > enemy.nextJump) {
           enemy.nextJump = Date.now() + 1000 * Phaser.Math.Between(3, 10);
           enemy.applyForce({
@@ -1659,6 +1659,7 @@ function winLevel() {
       x: hero.x,
       y: exit.sprite.y - 175 * mult,
       ease: 'Cubic.easeInOut',
+      delay: 500,
       duration: 1000,
       onComplete: () => {
         if (!lastLevel) {
@@ -2254,7 +2255,7 @@ function updateHero() {
           duration: 100,
           onUpdate: () => {
             if (sidekick.yHoldTween) {
-              sidekick.yHoldBob = (sidekick.yHoldUp ? -3 : 3) * sidekick.yHoldTween.getValue() / 100;
+              sidekick.yHoldBob = (sidekick.yHoldUp ? -2 : 2) * sidekick.yHoldTween.getValue() / 100;
             }
           },
           onComplete: () => {
