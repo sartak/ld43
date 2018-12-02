@@ -839,14 +839,6 @@ function create() {
     state.keys[code] = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes[code]);
   });
 
-  game.input.keyboard.on('keydown_Q', () => {
-    game.scene.stop();
-    const engine = document.querySelector('#engine canvas');
-    if (engine) {
-      engine.remove();
-    }
-  });
-
   game.matter.world.on('beforeupdate', () => {
     beforeCollisions();
   });
