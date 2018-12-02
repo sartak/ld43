@@ -14,6 +14,8 @@ import exitSprite from './assets/exit.png';
 import groundImage from './assets/ground.png';
 import wallImage from './assets/wall.png';
 import hpbarImage from './assets/hpbar.png';
+import starImage from './assets/star.png';
+import radialImage from './assets/radial.png';
 
 import level1Background from './assets/level-1.png';
 import level1Map from './assets/level-1.map';
@@ -182,6 +184,8 @@ function preload() {
   game.load.image('ground', groundImage);
   game.load.image('wall', wallImage);
   game.load.image('hpbar', hpbarImage);
+  game.load.image('star', starImage);
+  game.load.image('radial', radialImage);
   game.load.image('block-a', blockA);
   game.load.image('block-b', blockB);
   game.load.image('block-c', blockC);
@@ -422,6 +426,7 @@ function updateEnemy(enemy) {
       const sprite = game.add.sprite(enemy.x, enemy.y-32, 'exit');
       removeEnemy(enemy);
       game.sound.play('unlock-exit');
+      createTreasureEffects(sprite);
       level.exit = {
         x: sprite.x,
         y: sprite.y,
@@ -479,6 +484,40 @@ function updateEnemy(enemy) {
       }
     }
   }
+}
+
+function createTreasureEffects(sprite) {
+  const { game } = state;
+
+  /*
+  const particles = game.add.particles('star');
+  const emitter = particles.createEmitter({
+    speed: 50,
+    lifespan: 200,
+    blendMode: 'ADD',
+  });
+  emitter.startFollow(sprite);
+
+  sprite.treasureParticles = particles;
+  sprite.treasureEmitter = emitter;
+  */
+
+  const radial = game.add.image(sprite.x, sprite.y - 20, 'radial');
+  radial.blendMode = 'ADD';
+  radial.alpha = 0.33;
+  //  radial.scale = 0.25;
+  sprite.radial = radial;
+
+  radial.glowTween = game.tweens.add({
+    targets: radial,
+    alpha: 0.66,
+    loop: -1,
+    ease: 'Quad.easeInOut',
+    yoyo: true,
+    duration: 1000,
+  });
+
+  return radial;
 }
 
 function updateCachedVelocityFor(character) {
@@ -628,6 +667,8 @@ function createMap() {
           y: y - 28,
           sprite,
         };
+
+        createTreasureEffects(sprite);
       } else if (spec === '|') {
         waves.push({
           enemies: waveEnemies,
@@ -1674,6 +1715,33 @@ function winLevel() {
         }
       },
     });
+    game.tweens.add({
+      targets: exit.sprite.radial,
+      x: hero.x,
+      y: exit.sprite.radial.y - 175 * mult,
+      ease: 'Cubic.easeInOut',
+      delay: 500,
+      duration: 1000,
+      onComplete: () => {
+        if (!lastLevel) {
+          game.time.addEvent({
+            delay: 2000,
+            callback: () => {
+              exit.sprite.radial.glowTween.stop();
+            },
+          });
+
+          game.tweens.add({
+            targets: exit.sprite.radial,
+            alpha: 0,
+            y: exit.sprite.radial.y + 40 * mult,
+            ease: 'Cubic.easeIn',
+            delay: 2000,
+            duration: 500,
+          });
+        }
+      },
+    });
   }
 
   blocks.forEach((block) => {
@@ -1730,6 +1798,13 @@ function winLevel() {
       targets: exit.sprite,
       x: origin + 400,
       y: 330,
+      ease: 'Quad.easeInOut',
+      duration: 1000,
+    });
+    game.tweens.add({
+      targets: exit.sprite.radial,
+      x: origin + 400,
+      y: 330-20,
       ease: 'Quad.easeInOut',
       duration: 1000,
     });
@@ -1837,9 +1912,15 @@ function winLevel() {
 
     delay += 1000;
     const sprite2 = game.add.sprite(heroX, heroY, 'exit');
+    const radial2 = createTreasureEffects(sprite2);
     const sprite3 = game.add.sprite(heroX, heroY, 'exit');
+    const radial3 = createTreasureEffects(sprite3);
     sprite2.alpha = 0;
     sprite3.alpha = 0;
+    radial2.alpha = 0;
+    radial3.alpha = 0;
+    radial2.glowTween.stop();
+    radial3.glowTween.stop();
 
     delay += 1000;
 
@@ -1861,6 +1942,14 @@ function winLevel() {
         game.sound.play('unlock-exit');
       },
     });
+    game.tweens.add({
+      targets: exit.sprite.radial,
+      x: heroX,
+      y: 200-20,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 1000,
+    });
     delay += 1000;
     game.tweens.add({
       targets: sprite2,
@@ -1874,6 +1963,18 @@ function winLevel() {
         game.sound.play('unlock-exit');
       },
     });
+    game.tweens.add({
+      targets: radial2,
+      x: heroX + 100,
+      y: 200-20,
+      alpha: 1,
+      ease: 'Cubic.easeInOut',
+      onComplete: () => {
+        radial2.glowTween.resume();
+      },
+      delay,
+      duration: 1000,
+    });
     delay += 1000;
     game.tweens.add({
       targets: sprite3,
@@ -1881,6 +1982,18 @@ function winLevel() {
       y: 200,
       alpha: 1,
       ease: 'Cubic.easeInOut',
+      delay,
+      duration: 1000,
+    });
+    game.tweens.add({
+      targets: radial3,
+      x: heroX - 100,
+      y: 200-20,
+      alpha: 1,
+      ease: 'Cubic.easeInOut',
+      onComplete: () => {
+        radial3.glowTween.resume();
+      },
       delay,
       duration: 1000,
     });
@@ -2065,6 +2178,20 @@ function winLevel() {
       delay,
       duration: 2000,
     });
+    game.time.addEvent({
+      delay,
+      callback: () => {
+        radial2.glowTween.stop();
+      },
+    });
+    game.tweens.add({
+      targets: radial2,
+      y: 150-20,
+      alpha: 0,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 2000,
+    });
 
     delay += 1000;
     game.tweens.add({
@@ -2075,11 +2202,40 @@ function winLevel() {
       delay,
       duration: 2000,
     });
+    game.time.addEvent({
+      delay,
+      callback: () => {
+        radial3.glowTween.stop();
+      },
+    });
+    game.tweens.add({
+      targets: radial3,
+      y: 150-20,
+      alpha: 0,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 2000,
+    });
 
     delay += 1000;
     game.tweens.add({
       targets: exit.sprite,
       y: 150,
+      alpha: 0,
+      ease: 'Cubic.easeInOut',
+      delay,
+      duration: 2000,
+    });
+
+    game.time.addEvent({
+      delay,
+      callback: () => {
+        exit.sprite.radial.glowTween.stop();
+      },
+    });
+    game.tweens.add({
+      targets: exit.sprite.radial,
+      y: 150-20,
       alpha: 0,
       ease: 'Cubic.easeInOut',
       delay,
