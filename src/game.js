@@ -195,6 +195,8 @@ function createHero({ x, y }, isInitial) {
 
   hero.setPosition(x, y);
 
+  hero.setMass(7.68);
+
   // can't rotate
   hero.setFixedRotation();
 
@@ -225,6 +227,7 @@ function createSidekick({ x, y }, isInitial) {
   sidekick.xHoldLag = 0;
   sidekick.yHoldBob = 0;
   sidekick.name = 'sidekick';
+  sidekick.setMass(4.9);
 
   return sidekick;
 }
