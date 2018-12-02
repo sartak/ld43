@@ -186,8 +186,8 @@ function createSidekick({ x, y }, isInitial) {
     createHpBar(sidekick, 300);
   }
 
-  sidekick.xHold = 0;
-  sidekick.yHold = 0;
+  sidekick.xHoldLag = 0;
+  sidekick.yHoldBob = 0;
   sidekick.name = 'sidekick';
 
   return sidekick;
@@ -1168,8 +1168,8 @@ function updateSidekick() {
       }
       break;
     case 'hold': {
-      sidekick.x = hero.x + (level.facingRight ? 10 : -10) + sidekick.xHold;
-      sidekick.y = hero.y + 10 + sidekick.yHold;
+      sidekick.x = hero.x + (level.facingRight ? 10 : -10) + sidekick.xHoldLag;
+      sidekick.y = hero.y + 10 + sidekick.yHoldBob + sidekick.yHoldLag;
 
       if (zDownStart) {
         level.throwState = 'throw';
@@ -1405,10 +1405,14 @@ function updateHero() {
   }
 
   // if we are walking while holding
-  sidekick.xHold = 0;
+  sidekick.xHoldLag = 0;
+  sidekick.yHoldLag = 0;
   if (throwState === 'hold') {
     if (Math.abs(hero.body.velocity.x) > 1) {
-      sidekick.xHold = -hero.body.velocity.x / 2;
+      sidekick.xHoldLag = -hero.body.velocity.x / 2;
+    }
+    if (Math.abs(hero.body.velocity.y) > 1) {
+      sidekick.yHoldLag = -hero.body.velocity.y / 2;
     }
 
     if ((cursors.left.isDown || cursors.right.isDown) && hero.touching.bottom) {
@@ -1424,7 +1428,7 @@ function updateHero() {
           duration: 100,
           onUpdate: () => {
             if (sidekick.yHoldTween) {
-              sidekick.yHold = (sidekick.yHoldUp ? -3 : 3) * sidekick.yHoldTween.getValue() / 100;
+              sidekick.yHoldBob = (sidekick.yHoldUp ? -3 : 3) * sidekick.yHoldTween.getValue() / 100;
             }
           },
           onComplete: () => {
@@ -1434,20 +1438,20 @@ function updateHero() {
           },
         });
       }
-    } else if (sidekick.yHold !== 0) {
+    } else if (sidekick.yHoldBob !== 0) {
       if (!sidekick.yRecoverTween) {
         if (sidekick.yHoldTween) {
           sidekick.yHoldTween.stop();
           delete sidekick.yHoldTween;
         }
         sidekick.yRecoverTween = game.tweens.addCounter({
-          from: sidekick.yHold,
+          from: sidekick.yHoldBob,
           to: 0,
           duration: 100,
           ease: 'Quad.easeInOut',
           onUpdate: () => {
             if (sidekick.yRecoverTween) {
-              sidekick.yHold = sidekick.yRecoverTween.getValue();
+              sidekick.yHoldBob = sidekick.yRecoverTween.getValue();
             }
           },
           onComplete: () => {
