@@ -334,6 +334,7 @@ function createEnemy({ type, x, y }) {
   enemy.enemyType = type;
   enemy.attack = enemyDefaults[type].attack;
   enemy.quick = enemyDefaults[type].quick;
+  enemy.jumps = enemyDefaults[type].jumps;
 
   updateCachedVelocityFor(enemy);
   createHpBar(enemy, enemyDefaults[type].hp);
@@ -450,6 +451,16 @@ function updateEnemy(enemy) {
     }
 
     if (enemy.enemyType !== 'x') {
+      if (enemy.jumps && Phaser.Math.Between(1, 10) === 0 && hero.y < enemy.y - 20 && enemy.body.velocity.y < 0.1) {
+        if (!enemy.nextJump || Date.now() > enemy.nextJump) {
+          enemy.nextJump = Date.now() + 1000 * Phaser.Math.Between(3, 10);
+          enemy.applyForce({
+            x: 0,
+            y: -0.30,
+          });
+        }
+      }
+
       const dx = hero.x - enemy.x;
       if (dx < -10) {
         enemy.applyForce({
