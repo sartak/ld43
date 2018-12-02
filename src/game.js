@@ -1463,11 +1463,16 @@ function updateHero() {
     }
   }
 
-  if (hero.touching.bottom && cursors.up.isDown) {
-    hero.applyForce({
-      x: 0,
-      y: throwState === 'hold' ? -0.16 : -0.33,
-    });
+  if (hero.touching.bottom) {
+    if (cursors.up.isDown && !level.jumpStarted && hero.body.velocity.y < 0.00001) {
+      level.jumpStarted = true;
+      hero.applyForce({
+        x: 0,
+        y: throwState === 'hold' ? -0.16 : -0.33,
+      });
+    }
+  } else {
+    level.jumpStarted = false;
   }
 
   if (velocity.x > 5) hero.setVelocityX(5);
