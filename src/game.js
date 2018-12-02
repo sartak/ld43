@@ -994,7 +994,8 @@ function winLevel() {
   if (state.throwState === 'hold') {
     game.tweens.add({
       targets: sidekick,
-      x: sidekick.x + state.facingRight ? 300 : -300,
+      x: sidekick.x + (state.facingRight ? 400 : -400),
+      ease: 'Quad.easeOut',
       duration: 500,
     });
   }
