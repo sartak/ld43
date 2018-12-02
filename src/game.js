@@ -142,10 +142,10 @@ function createHero({ x, y }, isInitial) {
   const { width: w, height: h } = hero;
 
   const sensors = hero.sensors = {
-    t: Bodies.rectangle(0, -h * 0.5, w-8, 2, { isSensor: true }),
-    b: Bodies.rectangle(0, h * 0.5 + 2, w-8, 2, { isSensor: true }),
-    l: Bodies.rectangle(-w * 0.5, 0, 2, h-8, { isSensor: true }),
-    r: Bodies.rectangle(w * 0.5, 0, 2, h-8, { isSensor: true }),
+    t: Bodies.rectangle(0, -h * 0.5 - 4, w*0.75, 2, { isSensor: true }),
+    b: Bodies.rectangle(0, h * 0.5 + 4, w*0.75, 2, { isSensor: true }),
+    l: Bodies.rectangle(-w * 0.5 - 4, 0, 2, h*0.75-8, { isSensor: true }),
+    r: Bodies.rectangle(w * 0.5 + 4, 0, 2, h*0.75-8, { isSensor: true }),
   };
 
   const compoundBody = Body.create({
@@ -165,7 +165,7 @@ function createHero({ x, y }, isInitial) {
   hero.touching = {
     left: false,
     right: false,
-    ground: false,
+    bottom: false,
   };
 
   if (isInitial) {
