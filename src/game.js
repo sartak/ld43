@@ -113,12 +113,24 @@ const state : any = {
 };
 
 const enemyDefaults = {
-  a: { hp: 100 },
-  b: { hp: 150 },
-  c: { hp: 50 },
-  k: { hp: 400 },
-  l: { hp: 400 },
-  x: { hp: 200 },
+  a: { hp: 100,
+    attack: 1,
+    jumps: false },
+  b: { hp: 150,
+    attack: 1,
+    jumps: true },
+  c: { hp: 50,
+    attack: 3,
+    jumps: true },
+  k: { hp: 400,
+    attack: 2,
+    jumps: true },
+  l: { hp: 400,
+    attack: 2,
+    jumps: true },
+  x: { hp: 200,
+    attack: 2,
+    jumps: false },
 };
 
 const whiteColor = {
@@ -228,6 +240,8 @@ function createHero({ x, y }, isInitial) {
 
   hero.setMass(7.68);
 
+  hero.attack = 0.25;
+
   // can't rotate
   hero.setFixedRotation();
 
@@ -259,6 +273,7 @@ function createSidekick({ x, y }, isInitial) {
   sidekick.yHoldBob = 0;
   sidekick.name = 'sidekick';
   sidekick.setMass(4.9);
+  sidekick.attack = 1;
 
   return sidekick;
 }
@@ -311,6 +326,7 @@ function createEnemy({ type, x, y }) {
   const enemy = game.matter.add.sprite(x, y, enemyId, null, { shape: physicsShapes[enemyId] });
 
   enemy.enemyType = type;
+  enemy.attack = enemyDefaults[type].attack;
 
   updateCachedVelocityFor(enemy);
   createHpBar(enemy, enemyDefaults[type].hp);
@@ -748,6 +764,12 @@ function create() {
 
   state.cursors = game.input.keyboard.createCursorKeys();
 
+  game.input.keyboard.on('keydown_SPACE', () => {
+  });
+
+  game.input.keyboard.on('keydown', () => {
+  });
+
   game.anims.create({
     key: 'neutral',
     frames: [
@@ -918,6 +940,39 @@ function collisionStart(event) {
 
       sidekick.angle = 0;
       matter.world.remove(sidekick);
+
+      const duration = 200;
+      let start = 0;
+      const end = 100;
+      if (sidekick.pickupTween) {
+        start = sidekick.pickupTween.getValue();
+        sidekick.pickupTween.stop();
+      }
+
+      sidekick.pickupTween = game.tweens.addCounter({
+        from: start,
+        to: end,
+        duration,
+        ease: 'Cubic.easeInOut',
+        onUpdate: () => {
+          const tint = Phaser.Display.Color.Interpolate.ColorWithColor(whiteColor, greenColor, 100, sidekick.pickupTween.getValue());
+          const color = Phaser.Display.Color.ObjectToColor(tint).color;
+          sidekick.setTint(color);
+        },
+        onComplete: () => {
+          sidekick.pickupTween = game.tweens.addCounter({
+            from: end,
+            to: 0,
+            duration,
+            ease: 'Cubic.easeInOut',
+            onUpdate: () => {
+              const tint = Phaser.Display.Color.Interpolate.ColorWithColor(whiteColor, greenColor, 100, sidekick.pickupTween.getValue());
+              const color = Phaser.Display.Color.ObjectToColor(tint).color;
+              sidekick.setTint(color);
+            },
+          });
+        },
+      });
     }
 
     const isEnemy = enemies.find(enemy => (enemy === a || enemy === b));
@@ -932,16 +987,10 @@ function collisionStart(event) {
       const duration = impact;
       let impactForShake = impact;
 
-      let damageA = baseDamage;
-      let damageB = baseDamage;
+      const damageA = baseDamage * b.attack;
+      const damageB = baseDamage * a.attack;
 
-      if (a === hero) {
-        damageB *= 0.2;
-        impactForShake *= 2;
-      }
-
-      if (b === hero) {
-        damageA *= 0.2;
+      if (a === hero || b === hero) {
         impactForShake *= 2;
       }
 
@@ -2123,8 +2172,8 @@ function updateHero() {
   sidekick.xHoldLag = 0;
   sidekick.yHoldLag = 0;
   if (throwState === 'hold') {
-    sidekick.xHoldLag = -hero.body.velocity.x / 2;
-    sidekick.yHoldLag = -hero.body.velocity.y / 2;
+    sidekick.xHoldLag = -hero.body.velocity.x;
+    sidekick.yHoldLag = -hero.body.velocity.y;
 
     // velocity.x is not the right check, since it is like, desired
     // velocity not actual change in position
