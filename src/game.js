@@ -142,10 +142,10 @@ function createHero({ x, y }, isInitial) {
   const { width: w, height: h } = hero;
 
   const sensors = hero.sensors = {
-    t: Bodies.rectangle(0, -h * 0.5 - 2, w*0.8, 4, { isSensor: true }),
-    b: Bodies.rectangle(0, h * 0.5 + 2, w*0.8, 4, { isSensor: true }),
-    l: Bodies.rectangle(-w * 0.5 - 2, 0, 4, h*0.8, { isSensor: true }),
-    r: Bodies.rectangle(w * 0.5 + 2, 0, 4, h*0.8, { isSensor: true }),
+    t: Bodies.rectangle(0, -h * 0.5 - 2, w*0.5, 4, { isSensor: true }),
+    b: Bodies.rectangle(0, h * 0.5 + 2, w*0.5, 4, { isSensor: true }),
+    l: Bodies.rectangle(-w * 0.5 - 2, 0, 4, h*0.5, { isSensor: true }),
+    r: Bodies.rectangle(w * 0.5 + 2, 0, 4, h*0.5, { isSensor: true }),
   };
 
   const compoundBody = Body.create({
@@ -764,8 +764,8 @@ function collisionStart(event) {
       hero.touching.bottom = true;
     }
 
-    const isSensor = Object.keys(hero.sensors).map(key => hero.sensors[key]).find(sensor => (sensor.id === bodyA.id || sensor.id === bodyB.id));
-    if (isSensor && level.throwState === 'pull' && zDown && (a.name === 'sidekick' || b.name === 'sidekick')) {
+    const isSensor = Object.keys(hero.sensors).map(key => hero.sensors[key]).find(sensor => (sensor.id === bodyA.id || sensor.id === bodyB.id)) || hero === a || hero === b;
+    if (isSensor && level.throwState === 'pull' && zDown && (a === sidekick || b === sidekick)) {
       level.throwState = 'hold';
 
       if (level.sidekickAngleRestore) {
@@ -879,8 +879,8 @@ function collisionActive(event) {
       hero.touching.bottom = true;
     }
 
-    const isSensor = Object.keys(hero.sensors).map(key => hero.sensors[key]).find(sensor => (sensor.id === bodyA.id || sensor.id === bodyB.id));
-    if (isSensor && level.throwState === 'pull' && zDown && (a.name === 'sidekick' || b.name === 'sidekick')) {
+    const isSensor = Object.keys(hero.sensors).map(key => hero.sensors[key]).find(sensor => (sensor.id === bodyA.id || sensor.id === bodyB.id)) || hero === a || hero === b;
+    if (isSensor && level.throwState === 'pull' && zDown && (a === sidekick || b === sidekick)) {
       level.throwState = 'hold';
 
       if (level.sidekickAngleRestore) {
@@ -1090,14 +1090,24 @@ function respawnIfNeeded(character) {
     duration: 1000,
     onComplete: () => {
       character.y = state.ceiling.position.y + character.height / 2;
-      character.x = game.cameras.main.scrollX + 64 + 16 + character.width / 2;
+      character.x = game.cameras.main.scrollX + 64 + 32 + character.width / 2;
       character.isRespawnBeginning = false;
       character.currentHP = character.maxHP;
       character.setVelocityX(0);
-      character.setVelocityY(0);
+      character.setAngularVelocity(0);
 
       if (character === sidekick) {
         character.isRespawning = false;
+        character.setVelocityY(0);
+        character.angle = 45;
+        game.tweens.add({
+          targets: character,
+          angle: -180,
+          ease: 'Cubic.easeOut',
+          duration: 1000,
+        });
+      } else {
+        character.setVelocityY(30);
       }
 
       game.tweens.add({
