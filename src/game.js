@@ -1325,7 +1325,7 @@ function addEndLevelLabel(x, y, i, fontSize, text) {
 
   if (i === 5) {
     game.time.addEvent({
-      delay: 1000*(i+1),
+      delay: 400*(i+1),
       callback: () => {
         game.tweens.add({
           targets: label,
