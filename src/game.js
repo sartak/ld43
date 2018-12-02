@@ -4,6 +4,7 @@ import heroSprite from './assets/hero.png';
 import sidekickSprite from './assets/sidekick.png';
 
 import enemySpriteA from './assets/enemy-a.png';
+import enemySpriteX from './assets/enemy-x.png';
 
 import skyImage2 from './assets/sky-2.png';
 import groundImage from './assets/ground.png';
@@ -27,7 +28,6 @@ const config = {
   parent: 'engine',
   width: 800,
   height: 600,
-  characterHeight: 100,
   physics: {
     default: 'matter',
     matter: {
@@ -54,6 +54,7 @@ const state : any = {
 
 const enemyDefaults = {
   a: { hp: 100 },
+  x: { hp: 200 },
 };
 
 const whiteColor = {
@@ -64,6 +65,11 @@ const whiteColor = {
 const redColor = {
   r: 255,
   g: 0,
+  b: 0,
+};
+const greenColor = {
+  r: 0,
+  g: 255,
   b: 0,
 };
 
@@ -80,6 +86,7 @@ function preload() {
   game.load.image('hero', heroSprite);
   game.load.image('sidekick', sidekickSprite);
   game.load.image('enemy-a', enemySpriteA);
+  game.load.image('enemy-x', enemySpriteX);
   game.load.image('level-1', level1Background);
   game.load.image('sky-2', skyImage2);
   game.load.image('ground', groundImage);
@@ -197,6 +204,8 @@ function createEnemy({ type, x, y }) {
 
   const enemy = game.matter.add.sprite(x, y, enemyId, null, { shape: physicsShapes[enemyId] });
 
+  enemy.enemyType = type;
+
   updateCachedVelocityFor(enemy);
   createHpBar(enemy, enemyDefaults[type].hp);
 
@@ -226,6 +235,7 @@ function updateHpBarFor(owner) {
   const { game } = state;
   const { previousHP, currentHP, maxHP, hpBar } = owner;
   const { fill, border } = hpBar;
+
   // respect rotation? offset?
   border.x = owner.x;
   border.y = owner.y - owner.height * 0.75;
@@ -265,18 +275,26 @@ function updateEnemy(enemy) {
   updateHpBarFor(enemy);
 
   if (enemy.currentHP <= 0) {
-    enemy.isDying = true;
     matter.world.remove(enemy);
-    game.tweens.add({
-      targets: enemy,
-      alpha: 0,
-      y: enemy.y - 100,
-      angle: enemy.angle - 45,
-      duration: 500,
-      onComplete: () => {
-        removeEnemy(enemy);
-      },
-    });
+    enemy.isDying = true;
+
+    if (enemy.enemyType === 'x') {
+      removeEnemy(enemy, false);
+      state.levelExit = { x: enemy.x,
+        y: enemy.y };
+    } else {
+      game.tweens.add({
+        targets: enemy,
+        alpha: 0,
+        y: enemy.y - 100,
+        angle: enemy.angle - 45,
+        duration: 500,
+        onComplete: () => {
+          removeEnemy(enemy, true);
+        },
+      });
+    }
+
     return;
   }
 
@@ -287,21 +305,23 @@ function updateEnemy(enemy) {
       return;
     }
 
-    const dx = hero.x - enemy.x;
-    if (dx < -10) {
-      enemy.applyForce({
-        x: -0.004,
-        y: 0,
-      });
-      enemy.setAngularVelocity(0.0005);
-    } else if (dx > 10) {
-      enemy.applyForce({
-        x: 0.004,
-        y: 0,
-      });
-      enemy.setAngularVelocity(-0.0005);
-    } else {
-      // attack
+    if (enemy.enemyType !== 'x') {
+      const dx = hero.x - enemy.x;
+      if (dx < -10) {
+        enemy.applyForce({
+          x: -0.004,
+          y: 0,
+        });
+        enemy.setAngularVelocity(0.0005);
+      } else if (dx > 10) {
+        enemy.applyForce({
+          x: 0.004,
+          y: 0,
+        });
+        enemy.setAngularVelocity(-0.0005);
+      } else {
+        // attack
+      }
     }
   }
 }
@@ -320,12 +340,19 @@ function removeHpBarFor(owner) {
   border.destroy();
 }
 
-function removeEnemy(enemy) {
+function removeEnemy(enemy, removeVisuals) {
   const { matter } = state;
-  removeHpBarFor(enemy);
+
+  if (removeVisuals) {
+    removeHpBarFor(enemy);
+  }
+
   state.enemies = state.enemies.filter(e => e !== enemy);
   state.waveEnemies = state.waveEnemies.filter(e => e !== enemy);
-  enemy.destroy();
+
+  if (removeVisuals) {
+    enemy.destroy();
+  }
 }
 
 function createGround() {
@@ -398,6 +425,7 @@ function createMap() {
 
   const waves = [];
   let waveEnemies = [];
+  const blocks = [];
 
   cols.forEach((col, c) => {
     const x = c * 32;
@@ -420,7 +448,28 @@ function createMap() {
         };
       } else if (spec === '#') {
         // exit
-        // automatically add final wave to x_lock just before this x coord?
+        // add last wave if needed
+        if (waveEnemies.length) {
+          waves.push({
+            enemies: waveEnemies,
+            x_lock: x - config.width,
+            i: waves.length,
+          });
+          waveEnemies = [];
+        }
+
+        const enemy = createEnemy({
+          type: 'x',
+          x,
+          y: y - 28,
+        });
+        state.enemies.push(enemy);
+        waveEnemies.push(enemy);
+        waves.push({
+          enemies: waveEnemies,
+          x_lock: x - config.width + 64,
+          i: waves.length,
+        });
       } else if (spec === '|') {
         waves.push({
           enemies: waveEnemies,
@@ -443,12 +492,14 @@ function createMap() {
         const type = `block-${spec}`;
         const block = matter.add.sprite(x+16, y+16, type, null, { shape: physicsShapes[type] });
         block.name = block;
+        blocks.push(block);
       }
     });
   });
 
   level.width = cols.length * 32;
   level.waves = waves;
+  level.blocks = blocks;
 }
 
 function create() {
@@ -466,8 +517,6 @@ function create() {
   const leftWall = state.leftWall = createWall(false, -40, 400);
   const rightWall = state.rightWall = createWall(true, level.width + 40, 400);
 
-  // +20 for a little bit of dynamism on load
-  const characterY = 20 + config.height - (config.characterHeight/2);
   const hero = state.hero = createHero(state.initialHeroPosition, true);
 
   const sidekick = state.sidekick = createSidekick(state.initialSidekickPosition, true);
@@ -625,7 +674,11 @@ function collisionEnd(event) {
 
 // parameter t is milliseconds since load
 function update() {
-  const { waveEnemies, enemies, game, level } = state;
+  const { waveEnemies, enemies, game, level, victory } = state;
+
+  if (victory) {
+    return;
+  }
 
   updateHero();
   updateSidekick();
@@ -884,8 +937,53 @@ function updateSidekick() {
   }
 }
 
+function winLevel() {
+  const { background, game, matter, hero, sidekick, level } = state;
+  const { blocks } = level;
+  matter.world.pause();
+  state.victory = true;
+
+  background.victoryTween = game.tweens.addCounter({
+    from: 0,
+    to: 70,
+    duration: 300,
+    onUpdate: () => {
+      const tint = Phaser.Display.Color.Interpolate.ColorWithColor(whiteColor, greenColor, 100, background.victoryTween.getValue());
+      const color = Phaser.Display.Color.ObjectToColor(tint).color;
+      background.setTint(color);
+    },
+  });
+
+  [hero, sidekick].forEach((character) => {
+    const { hpBar } = character;
+    const { border, fill } = hpBar;
+
+    game.tweens.add({
+      targets: [border, fill],
+      y: border.y - 30,
+      alpha: 0,
+      duration: 500,
+    });
+  });
+
+  blocks.forEach((block) => {
+    const { x, y } = block;
+    const dx = x - hero.x;
+    const dy = y - hero.y;
+    const theta = Math.atan2(dy, dx);
+
+    game.tweens.add({
+      targets: block,
+      x: x + config.width * Math.cos(theta),
+      y: y + config.width * Math.sin(theta),
+      ease: 'Cubic.easeIn',
+      duration: 3000,
+    });
+  });
+}
+
 function updateHero() {
-  const { game, matter, hero, cursors, keys, throwState, sidekick } = state;
+  const { game, matter, hero, cursors, keys, throwState, sidekick, levelExit } = state;
 
   updateCachedVelocityFor(hero);
   updateHpBarFor(hero);
@@ -897,6 +995,15 @@ function updateHero() {
       hero.isRespawning = false;
     }
     return;
+  }
+
+  if (levelExit) {
+    const dx = levelExit.x - hero.x;
+    const dy = levelExit.y - hero.y;
+    if (dx*dx+dy*dy < 30*30) {
+      winLevel();
+      return;
+    }
   }
 
   const { velocity } = hero.body;
