@@ -43,6 +43,7 @@ import blockN from './assets/block-n.png';
 import blockO from './assets/block-o.png';
 import blockP from './assets/block-p.png';
 import blockQ from './assets/block-q.png';
+import blockR from './assets/block-r.png';
 
 import physicsShapes from './assets/physics.json';
 
@@ -203,6 +204,7 @@ function preload() {
   game.load.image('block-o', blockO);
   game.load.image('block-p', blockP);
   game.load.image('block-q', blockQ);
+  game.load.image('block-r', blockR);
 
   game.load.text('level-1', level1Map);
   game.load.text('level-2', level2Map);
