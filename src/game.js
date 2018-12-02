@@ -1445,17 +1445,18 @@ function winLevel() {
   }
 
   if (exit && exit.sprite) {
+    const mult = level.index === 1 ? -1 : 1;
     game.tweens.add({
       targets: exit.sprite,
       x: hero.x,
-      y: exit.sprite.y - 175,
+      y: exit.sprite.y - 175 * mult,
       ease: 'Cubic.easeInOut',
       duration: 1000,
       onComplete: () => {
         game.tweens.add({
           targets: exit.sprite,
           alpha: 0,
-          y: exit.sprite.y + 40,
+          y: exit.sprite.y + 40 * mult,
           ease: 'Cubic.easeIn',
           delay: 2000,
           duration: 500,
