@@ -44,6 +44,19 @@ import blockQ from './assets/block-q.png';
 
 import physicsShapes from './assets/physics.json';
 
+import pickupSidekickSound from './assets/pickup-sidekick.wav';
+import unlockExitSound from './assets/unlock-exit.wav';
+import throwSidekickSound from './assets/throw-sidekick.wav';
+import sidekickHitsSound from './assets/sidekick-hits.wav';
+import heroHitSound from './assets/hero-hit.wav';
+import heroDieSound from './assets/hero-die.wav';
+import sidekickDieSound from './assets/sidekick-die.wav';
+import heroHitsSound from './assets/hero-hits.wav';
+import enemyDieSound from './assets/enemy-die.wav';
+import heroRespawnSound from './assets/hero-respawn.wav';
+import sidekickRespawnSound from './assets/sidekick-respawn.wav';
+import jumpSound from './assets/jump.wav';
+
 // SACRIFICES MUST BE MADE
 //
 const DEBUG = (!process.env.NODE_ENV || process.env.NODE_ENV === 'development');
@@ -167,6 +180,19 @@ function preload() {
   game.load.text('level-1', level1Map);
   game.load.text('level-2', level2Map);
   game.load.text('level-3', level3Map);
+
+  game.load.audio('pickup-sidekick', pickupSidekickSound);
+  game.load.audio('unlock-exit', unlockExitSound);
+  game.load.audio('throw-sidekick', throwSidekickSound);
+  game.load.audio('sidekick-hits', sidekickHitsSound);
+  game.load.audio('hero-hit', heroHitSound);
+  game.load.audio('hero-die', heroDieSound);
+  game.load.audio('sidekick-die', sidekickDieSound);
+  game.load.audio('hero-hits', heroHitsSound);
+  game.load.audio('enemy-die', enemyDieSound);
+  game.load.audio('hero-respawn', heroRespawnSound);
+  game.load.audio('sidekick-respawn', sidekickRespawnSound);
+  game.load.audio('jump', jumpSound);
 }
 
 function createHero({ x, y }, isInitial) {
@@ -357,6 +383,7 @@ function updateEnemy(enemy) {
     if (enemy.enemyType === 'x') {
       const sprite = game.add.sprite(enemy.x, enemy.y-32, 'exit');
       removeEnemy(enemy);
+      game.sound.play('unlock-exit');
       level.exit = {
         x: sprite.x,
         y: sprite.y,
@@ -421,12 +448,13 @@ function removeHpBarFor(owner) {
 }
 
 function removeEnemy(enemy) {
-  const { matter, level } = state;
+  const { matter, level, game } = state;
 
   removeHpBarFor(enemy);
   level.enemies = level.enemies.filter(e => e !== enemy);
   level.waveEnemies = level.waveEnemies.filter(e => e !== enemy);
   enemy.destroy();
+  game.sound.play('enemy-die');
 }
 
 function createGround() {
@@ -875,6 +903,7 @@ function collisionStart(event) {
     const isSensor = Object.keys(hero.sensors).map(key => hero.sensors[key]).find(sensor => (sensor.id === bodyA.id || sensor.id === bodyB.id)) || hero === a || hero === b;
     if (isSensor && level.throwState === 'pull' && zDown && (a === sidekick || b === sidekick)) {
       level.throwState = 'hold';
+      game.sound.play('pickup-sidekick');
 
       if (level.sidekickAngleRestore) {
         level.sidekickAngleRestore.stop();
@@ -895,16 +924,30 @@ function collisionStart(event) {
       const impact = Vector.magnitude(relativeMomentum);
       const baseDamage = impact / 5;
       const duration = impact;
+      let impactForShake = impact;
 
       let damageA = baseDamage;
       let damageB = baseDamage;
 
       if (a === hero) {
         damageB *= 0.2;
+        impactForShake *= 2;
       }
 
       if (b === hero) {
         damageA *= 0.2;
+        impactForShake *= 2;
+      }
+
+      if (a === hero || b === hero) {
+        // who hits whom?
+        if (Phaser.Math.Between(0, 1) === 0) {
+          game.sound.play('hero-hit');
+        } else {
+          game.sound.play('hero-hits');
+        }
+      } else if (a === sidekick || b === sidekick) {
+        game.sound.play('sidekick-hits');
       }
 
       a.currentHP = Math.max(0, a.currentHP - damageA);
@@ -948,7 +991,7 @@ function collisionStart(event) {
         });
       });
 
-      game.cameras.main.shake(impact/2, 0.00005*impact);
+      game.cameras.main.shake(impactForShake/2, 0.00005*impactForShake);
     }
   });
 }
@@ -1170,6 +1213,7 @@ function respawnIfNeeded(character) {
 
   if (character === hero) {
     level.heroDeaths++;
+    game.sound.play('hero-die');
 
     if (level.throwState === 'hold') {
       sidekick = level.sidekick = replaceSidekick(sidekick);
@@ -1191,6 +1235,7 @@ function respawnIfNeeded(character) {
   } else if (character === sidekick) {
     level.sidekickDeaths++;
     level.throwState = 'calm';
+    game.sound.play('sidekick-die');
   }
 
   game.tweens.add({
@@ -1208,6 +1253,7 @@ function respawnIfNeeded(character) {
       if (character === sidekick) {
         character.setVelocityY(0);
         character.angle = 45;
+        game.sound.play('sidekick-respawn');
         game.tweens.add({
           targets: character,
           angle: -180,
@@ -1220,6 +1266,7 @@ function respawnIfNeeded(character) {
           },
         });
       } else {
+        game.sound.play('hero-respawn');
         character.setVelocityY(30);
       }
 
@@ -1366,6 +1413,8 @@ function updateSidekick() {
 
       if (zDownStart) {
         level.throwState = 'throw';
+
+        game.sound.play('throw-sidekick');
 
         // recreate a new sidekick because re-adding to
         // physics seems unsupported
@@ -1677,6 +1726,7 @@ function updateHero() {
   if (hero.touching.bottom) {
     if (cursors.up.isDown && !level.jumpStarted && hero.body.velocity.y < 0.00001) {
       level.jumpStarted = true;
+      game.sound.play('jump');
       hero.applyForce({
         x: 0,
         y: throwState === 'hold' ? -0.27 : -0.35,
