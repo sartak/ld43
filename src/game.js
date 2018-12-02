@@ -999,9 +999,6 @@ function collisionStart(event) {
 
       if (a === hero || b === hero) {
         impactForShake *= 2;
-      }
-
-      if (a === hero || b === hero) {
         // who hits whom?
         if (Phaser.Math.Between(0, 1) === 0) {
           game.sound.play('hero-hit');
@@ -1010,6 +1007,48 @@ function collisionStart(event) {
         }
       } else if (a === sidekick || b === sidekick) {
         game.sound.play('sidekick-hits');
+
+        const sidekickDamage = a === sidekick ? damageA : damageB;
+        if (((sidekickDamage > sidekick.currentHP && sidekick.currentHP > 0) || (sidekickDamage > 30 && Phaser.Math.Between(0, 5) === 0)) && (!level.lastOink || level.lastOink < Date.now() - 5*1000)) {
+          level.lastOink = Date.now();
+
+          const texts = ['oink!', 'squeal!', 'yarr!', 'avast!', 'ow!', 'barf!'];
+          const oink = game.add.text(
+            sidekick.x,
+            sidekick.y,
+            texts[Phaser.Math.Between(0, texts.length - 1)],
+            {
+              fontFamily: '"Avenir Next", "Avenir", "Helvetica Neue", "Helvetica"',
+              fontSize: 18,
+              color: 'rgb(186, 109, 153)',
+            },
+          );
+          oink.setStroke('#000000', 6);
+          oink.alpha = 0;
+          oink.scale = 0.5;
+
+          game.tweens.add({
+            targets: oink,
+            alpha: 1,
+            y: oink.y - 40,
+            ease: 'Cubic.easeInOut',
+            duration: 1000,
+          });
+          game.tweens.add({
+            targets: oink,
+            alpha: 0,
+            y: oink.y - 80,
+            ease: 'Cubic.easeInOut',
+            delay: 1500,
+            duration: 500,
+          });
+          game.tweens.add({
+            targets: oink,
+            scale: 2,
+            ease: 'Cubic.easeInOut',
+            duration: 2000,
+          });
+        }
       }
 
       a.currentHP = Math.max(0, a.currentHP - damageA);
@@ -1695,6 +1734,7 @@ function winLevel() {
         color: 'rgb(186, 109, 153)',
       },
     );
+    worthIt.setStroke('#000000', 6);
     worthIt.alpha = 0;
 
     delay += 500;
@@ -1717,6 +1757,7 @@ function winLevel() {
         color: 'rgb(186, 109, 153)',
       },
     );
+    myPain.setStroke('#000000', 6);
     myPain.alpha = 0;
 
     delay += 2000;
@@ -1739,6 +1780,7 @@ function winLevel() {
         color: 'rgb(186, 109, 153)',
       },
     );
+    mySuffering.setStroke('#000000', 6);
     mySuffering.alpha = 0;
 
     delay += 1000;
@@ -1842,6 +1884,7 @@ function winLevel() {
         color: 'rgb(220, 60, 60)',
       },
     );
+    sac.setStroke('#000000', 6);
     sac.alpha = 0;
 
     game.tweens.add({
@@ -1895,6 +1938,7 @@ function winLevel() {
         color: 'rgb(186, 109, 153)',
       },
     );
+    idotdotdot.setStroke('#000000', 6);
     idotdotdot.alpha = 0;
 
     game.tweens.add({
@@ -1927,6 +1971,7 @@ function winLevel() {
         color: 'rgb(186, 109, 153)',
       },
     );
+    idly.setStroke('#000000', 6);
     idly.alpha = 0;
 
     game.tweens.add({
@@ -1968,6 +2013,7 @@ function winLevel() {
         color: 'rgb(220, 60, 60)',
       },
     );
+    sac2.setStroke('#000000', 6);
     sac2.alpha = 0;
 
     game.tweens.add({
