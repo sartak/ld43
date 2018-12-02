@@ -554,8 +554,8 @@ function setupLevel(isInitial) {
 
   createMap();
 
+  game.cameras.main.scrollX = 0;
   game.cameras.main.setBounds(0, 0, level.width, 1080 * 2);
-  game.cameras.main.scrollX = -112;
 
   if (isInitial) {
     level.readyToPlay = true;
@@ -565,6 +565,7 @@ function setupLevel(isInitial) {
 
     // target, round pixels for jitter, lerpx, lerpy, offsetx, offsety
     game.cameras.main.startFollow(hero, false, 0.05, 0, 0, 270);
+    game.cameras.main.setBounds(0, 0, level.width, 1080 * 2);
   } else {
     level.background.alpha = 0;
     game.tweens.add({
@@ -579,6 +580,7 @@ function setupLevel(isInitial) {
 
         // target, round pixels for jitter, lerpx, lerpy, offsetx, offsety
         game.cameras.main.startFollow(hero, false, 0.05, 0, 0, 270);
+        game.cameras.main.setBounds(0, 0, level.width, 1080 * 2);
 
         game.matter.resume();
       },
