@@ -142,10 +142,10 @@ function createHero({ x, y }, isInitial) {
   const { width: w, height: h } = hero;
 
   const sensors = hero.sensors = {
-    t: Bodies.rectangle(0, -h * 0.5 - 4, w*0.75, 2, { isSensor: true }),
-    b: Bodies.rectangle(0, h * 0.5 + 4, w*0.75, 2, { isSensor: true }),
-    l: Bodies.rectangle(-w * 0.5 - 4, 0, 2, h*0.75-8, { isSensor: true }),
-    r: Bodies.rectangle(w * 0.5 + 4, 0, 2, h*0.75-8, { isSensor: true }),
+    t: Bodies.rectangle(0, -h * 0.5 - 2, w*0.8, 4, { isSensor: true }),
+    b: Bodies.rectangle(0, h * 0.5 + 2, w*0.8, 4, { isSensor: true }),
+    l: Bodies.rectangle(-w * 0.5 - 2, 0, 4, h*0.8, { isSensor: true }),
+    r: Bodies.rectangle(w * 0.5 + 2, 0, 4, h*0.8, { isSensor: true }),
   };
 
   const compoundBody = Body.create({
@@ -692,13 +692,34 @@ function create() {
     }
   });
 
+  game.matter.world.on('beforeupdate', () => {
+    beforeCollisions();
+  });
+
   game.matter.world.on('collisionstart', (event) => {
     collisionStart(event);
+  });
+
+  game.matter.world.on('collisionactive', (event) => {
+    collisionActive(event);
   });
 
   game.matter.world.on('collisionend', (event) => {
     collisionEnd(event);
   });
+}
+
+function beforeCollisions() {
+  const { level } = state;
+  const { hero, readyToPlay } = level;
+
+  if (!readyToPlay) {
+    return;
+  }
+
+  hero.touching.left = false;
+  hero.touching.right = false;
+  hero.touching.bottom = false;
 }
 
 function collisionStart(event) {
@@ -718,13 +739,17 @@ function collisionStart(event) {
     }
 
     if (bodyA.id === hero.sensors.l.id || bodyB.id === hero.sensors.l.id) {
+      if (!hero.touching.left) {
+        hero.x += Math.max(0, separation - 0.5);
+      }
       hero.touching.left = true;
-      hero.x += separation + 2;
     }
 
     if (bodyA.id === hero.sensors.r.id || bodyB.id === hero.sensors.r.id) {
+      if (!hero.touching.right) {
+        hero.x -= Math.max(0, separation - 0.5);
+      }
       hero.touching.right = true;
-      hero.x -= separation + 2;
     }
 
     if ((bodyA.id === hero.sensors.b.id || bodyB.id === hero.sensors.b.id)) {
@@ -812,9 +837,9 @@ function collisionStart(event) {
   });
 }
 
-function collisionEnd(event) {
-  const { level } = state;
-  const { hero, readyToPlay } = level;
+function collisionActive(event) {
+  const { zDown, matter, level } = state;
+  const { hero, sidekick, readyToPlay } = level;
 
   if (!readyToPlay) {
     return;
@@ -824,22 +849,44 @@ function collisionEnd(event) {
     const a = bodyA.gameObject;
     const b = bodyB.gameObject;
 
-    if (bodyA.id === hero.sensors.l.id || bodyB.id === hero.sensors.l.id) {
-      hero.touching.left = false;
-    }
-
-    if (bodyA.id === hero.sensors.r.id || bodyB.id === hero.sensors.r.id) {
-      hero.touching.right = false;
-    }
-
     if (!a || !b) {
       return;
     }
 
+    if (bodyA.id === hero.sensors.l.id || bodyB.id === hero.sensors.l.id) {
+      if (!hero.touching.left) {
+        hero.x += Math.max(0, separation - 0.5);
+      }
+      hero.touching.left = true;
+    }
+
+    if (bodyA.id === hero.sensors.r.id || bodyB.id === hero.sensors.r.id) {
+      if (!hero.touching.right) {
+        hero.x -= Math.max(0, separation - 0.5);
+      }
+      hero.touching.right = true;
+    }
+
     if ((bodyA.id === hero.sensors.b.id || bodyB.id === hero.sensors.b.id)) {
-      hero.touching.bottom = false;
+      hero.touching.bottom = true;
+    }
+
+    const isSensor = Object.keys(hero.sensors).map(key => hero.sensors[key]).find(sensor => (sensor.id === bodyA.id || sensor.id === bodyB.id));
+    if (isSensor && level.throwState === 'pull' && zDown && (a.name === 'sidekick' || b.name === 'sidekick')) {
+      level.throwState = 'hold';
+
+      if (level.sidekickAngleRestore) {
+        level.sidekickAngleRestore.stop();
+        delete level.sidekickAngleRestore;
+      }
+
+      sidekick.angle = 0;
+      matter.world.remove(sidekick);
     }
   });
+}
+
+function collisionEnd(event) {
 }
 
 // parameter t is milliseconds since load
@@ -1408,14 +1455,12 @@ function updateHero() {
   sidekick.xHoldLag = 0;
   sidekick.yHoldLag = 0;
   if (throwState === 'hold') {
-    if (Math.abs(hero.body.velocity.x) > 1) {
-      sidekick.xHoldLag = -hero.body.velocity.x / 2;
-    }
-    if (Math.abs(hero.body.velocity.y) > 1) {
-      sidekick.yHoldLag = -hero.body.velocity.y / 2;
-    }
+    sidekick.xHoldLag = -hero.body.velocity.x / 2;
+    sidekick.yHoldLag = -hero.body.velocity.y / 2;
 
-    if ((cursors.left.isDown || cursors.right.isDown) && hero.touching.bottom) {
+    // velocity.x is not the right check, since it is like, desired
+    // velocity not actual change in position
+    if (((cursors.left.isDown && hero.body.velocity.x < -2) || (cursors.right.isDown && hero.body.velocity.x > 2)) && hero.touching.bottom) {
       if (!sidekick.yHoldTween) {
         if (sidekick.yRecoverTween) {
           sidekick.yRecoverTween.stop();
