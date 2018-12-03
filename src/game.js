@@ -112,6 +112,7 @@ const state : any = {
   keys: {},
   heroDeaths: 0,
   sidekickDeaths: 0,
+  tutorialState: 'begin',
 };
 
 const enemyDefaults = {
@@ -953,6 +954,100 @@ function beforeCollisions() {
   hero.touching.bottom = false;
 }
 
+function pickup() {
+  const { game, level, tutorialState } = state;
+  const { sidekick } = level;
+
+  level.throwState = 'hold';
+  game.sound.play('pickup-sidekick');
+
+  if (level.sidekickAngleRestore) {
+    level.sidekickAngleRestore.stop();
+    delete level.sidekickAngleRestore;
+  }
+
+  sidekick.angle = 0;
+  game.matter.world.remove(sidekick);
+
+  const duration = 200;
+  let start = 0;
+  const end = 100;
+  if (sidekick.pickupTween) {
+    start = sidekick.pickupTween.getValue();
+    sidekick.pickupTween.stop();
+  }
+
+  sidekick.pickupTween = game.tweens.addCounter({
+    from: start,
+    to: end,
+    duration,
+    ease: 'Cubic.easeInOut',
+    onUpdate: () => {
+      const tint = Phaser.Display.Color.Interpolate.ColorWithColor(whiteColor, greenColor, 100, sidekick.pickupTween.getValue());
+      const color = Phaser.Display.Color.ObjectToColor(tint).color;
+      sidekick.setTint(color);
+    },
+    onComplete: () => {
+      sidekick.pickupTween = game.tweens.addCounter({
+        from: end,
+        to: 0,
+        duration,
+        ease: 'Cubic.easeInOut',
+        onUpdate: () => {
+          const tint = Phaser.Display.Color.Interpolate.ColorWithColor(whiteColor, greenColor, 100, sidekick.pickupTween.getValue());
+          const color = Phaser.Display.Color.ObjectToColor(tint).color;
+          sidekick.setTint(color);
+        },
+      });
+    },
+  });
+
+  if (tutorialState === 'awaiting-pickup') {
+    const existing = state.tutorialHello;
+    game.tweens.add({
+      targets: existing,
+      alpha: 0,
+      y: existing.y - 80,
+      ease: 'Cubic.easeInOut',
+      delay: 500,
+      duration: 500,
+    });
+    game.tweens.add({
+      targets: existing,
+      scale: 2,
+      ease: 'Cubic.easeInOut',
+      duration: 2000,
+    });
+
+    state.tutorialState = 'awaiting-throw';
+
+    const bye = game.add.text(
+      sidekick.x - 75,
+      sidekick.y - 75,
+      'If you must . . . press Z to throw me.',
+      {
+        fontFamily: '"Avenir Next", "Avenir", "Helvetica Neue", "Helvetica"',
+        fontSize: 18,
+        color: 'rgb(186, 109, 153)',
+      },
+    );
+    bye.setStroke('#000000', 6);
+    bye.alpha = 0;
+    bye.scale = 0.5;
+
+    state.tutorialBye = bye;
+
+    game.tweens.add({
+      targets: bye,
+      alpha: 1,
+      y: bye.y - 40,
+      ease: 'Cubic.easeInOut',
+      delay: 1000,
+      duration: 1000,
+    });
+  }
+}
+
 function collisionStart(event) {
   const { zDown, matter, game, level } = state;
   const { hero, sidekick, enemies, readyToPlay } = level;
@@ -989,49 +1084,7 @@ function collisionStart(event) {
 
     const isSensor = Object.keys(hero.sensors).map(key => hero.sensors[key]).find(sensor => (sensor.id === bodyA.id || sensor.id === bodyB.id)) || hero === a || hero === b;
     if (isSensor && level.throwState === 'pull' && zDown && (a === sidekick || b === sidekick)) {
-      level.throwState = 'hold';
-      game.sound.play('pickup-sidekick');
-
-      if (level.sidekickAngleRestore) {
-        level.sidekickAngleRestore.stop();
-        delete level.sidekickAngleRestore;
-      }
-
-      sidekick.angle = 0;
-      matter.world.remove(sidekick);
-
-      const duration = 200;
-      let start = 0;
-      const end = 100;
-      if (sidekick.pickupTween) {
-        start = sidekick.pickupTween.getValue();
-        sidekick.pickupTween.stop();
-      }
-
-      sidekick.pickupTween = game.tweens.addCounter({
-        from: start,
-        to: end,
-        duration,
-        ease: 'Cubic.easeInOut',
-        onUpdate: () => {
-          const tint = Phaser.Display.Color.Interpolate.ColorWithColor(whiteColor, greenColor, 100, sidekick.pickupTween.getValue());
-          const color = Phaser.Display.Color.ObjectToColor(tint).color;
-          sidekick.setTint(color);
-        },
-        onComplete: () => {
-          sidekick.pickupTween = game.tweens.addCounter({
-            from: end,
-            to: 0,
-            duration,
-            ease: 'Cubic.easeInOut',
-            onUpdate: () => {
-              const tint = Phaser.Display.Color.Interpolate.ColorWithColor(whiteColor, greenColor, 100, sidekick.pickupTween.getValue());
-              const color = Phaser.Display.Color.ObjectToColor(tint).color;
-              sidekick.setTint(color);
-            },
-          });
-        },
-      });
+      pickup();
     }
 
     const isEnemy = enemies.find(enemy => (enemy === a || enemy === b));
@@ -1185,15 +1238,7 @@ function collisionActive(event) {
 
     const isSensor = Object.keys(hero.sensors).map(key => hero.sensors[key]).find(sensor => (sensor.id === bodyA.id || sensor.id === bodyB.id)) || hero === a || hero === b;
     if (isSensor && level.throwState === 'pull' && zDown && (a === sidekick || b === sidekick)) {
-      level.throwState = 'hold';
-
-      if (level.sidekickAngleRestore) {
-        level.sidekickAngleRestore.stop();
-        delete level.sidekickAngleRestore;
-      }
-
-      sidekick.angle = 0;
-      matter.world.remove(sidekick);
+      pickup();
     }
   });
 }
@@ -1203,10 +1248,48 @@ function collisionEnd(event) {
 
 // parameter t is milliseconds since load
 function update() {
-  const { game, level, keys, cursors } = state;
-  const { waveEnemies, enemies, victory } = level;
+  const { game, level, keys, cursors, tutorialState } = state;
+  const { waveEnemies, enemies, victory, hero, sidekick } = level;
 
   if (!level.readyToPlay) {
+    return;
+  }
+
+  if (!level.startTime) {
+    level.startTime = new Date();
+  }
+
+  if (!state.startTime) {
+    state.startTime = new Date();
+  }
+
+
+  if (tutorialState === 'begin') {
+    state.tutorialState = 'awaiting-pickup';
+
+    const hello = game.add.text(
+      sidekick.x - 75,
+      sidekick.y - 25,
+      'Hold Z to pick me up!',
+      {
+        fontFamily: '"Avenir Next", "Avenir", "Helvetica Neue", "Helvetica"',
+        fontSize: 18,
+        color: 'rgb(186, 109, 153)',
+      },
+    );
+    hello.setStroke('#000000', 6);
+    hello.alpha = 0;
+    hello.scale = 0.5;
+
+    state.tutorialHello = hello;
+
+    game.tweens.add({
+      targets: hello,
+      alpha: 1,
+      y: hello.y - 40,
+      ease: 'Cubic.easeInOut',
+      duration: 1000,
+    });
     return;
   }
 
@@ -1241,12 +1324,10 @@ function update() {
   const zDown = state.zDown;
   state.zDownStart = !oldZDown && zDown;
 
-  if (!level.startTime) {
-    level.startTime = new Date();
-  }
-
-  if (!state.startTime) {
-    state.startTime = new Date();
+  if (tutorialState) {
+    state.leftDown = false;
+    state.rightDown = false;
+    state.upDown = false;
   }
 
   if (victory) {
@@ -1300,7 +1381,7 @@ function update() {
           level.sidekick = null;
 
           level.enemies.forEach((enemy) => {
-            removeEnemy(enemy, false);
+            removeEnemy(enemy);
           });
           level.enemies = null;
 
@@ -1326,8 +1407,10 @@ function update() {
   updateHero();
   updateSidekick();
 
-  // dont update offscreen enemies
-  waveEnemies.forEach(enemy => updateEnemy(enemy));
+  if (!tutorialState) {
+    // dont update offscreen enemies
+    waveEnemies.forEach(enemy => updateEnemy(enemy));
+  }
 
   if (waveEnemies.length === 0) {
     delete level.camera_lock;
@@ -1619,6 +1702,26 @@ function updateSidekick() {
             level.throwState = 'calm';
           },
         });
+
+        if (state.tutorialState === 'awaiting-throw') {
+          const existing = state.tutorialBye;
+          game.tweens.add({
+            targets: existing,
+            alpha: 0,
+            y: existing.y - 80,
+            ease: 'Cubic.easeInOut',
+            delay: 500,
+            duration: 500,
+          });
+          game.tweens.add({
+            targets: existing,
+            scale: 2,
+            ease: 'Cubic.easeInOut',
+            duration: 2000,
+          });
+
+          delete state.tutorialState;
+        }
       }
       break;
     }
