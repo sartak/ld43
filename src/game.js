@@ -279,7 +279,7 @@ function createSidekick({ x, y }, isInitial) {
 
   if (isInitial) {
     updateCachedVelocityFor(sidekick);
-    createHpBar(sidekick, 300);
+    createHpBar(sidekick, 600);
   }
 
   sidekick.xHoldLag = 0;
