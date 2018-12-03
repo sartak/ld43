@@ -130,9 +130,11 @@ const enemyDefaults = {
     mass: 7,
     quick: 0.5,
     jumps: true },
-  k: { hp: 400,
-    attack: 2,
-    quick: 1.2,
+  k: { hp: 2000,
+    attack: 3,
+    quick: 2,
+    mass: 40,
+    flippy: false,
     jumps: true },
   x: { hp: 200,
     attack: 2,
@@ -339,6 +341,7 @@ function createEnemy({ type, x, y }) {
   enemy.attack = enemyDefaults[type].attack;
   enemy.quick = enemyDefaults[type].quick;
   enemy.jumps = enemyDefaults[type].jumps;
+  enemy.flippy = enemyDefaults[type].flippy;
 
   if (enemyDefaults[type].mass) {
     enemy.setMass(enemyDefaults[type].mass);
@@ -472,14 +475,19 @@ function updateEnemy(enemy) {
 
       const dx = hero.x - enemy.x;
       if (dx < -10) {
-        enemy.setFlipX(true);
+        if (enemy.flippy !== false) {
+          enemy.setFlipX(true);
+        }
+
         enemy.applyForce({
           x: -0.004 * enemy.quick,
           y: 0,
         });
         enemy.setAngularVelocity(0.0005);
       } else if (dx > 10) {
-        enemy.setFlipX(false);
+        if (enemy.flippy !== false) {
+          enemy.setFlipX(false);
+        }
         enemy.applyForce({
           x: 0.004 * enemy.quick,
           y: 0,
