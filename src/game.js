@@ -503,19 +503,6 @@ function updateEnemy(enemy) {
 function createTreasureEffects(sprite) {
   const { game } = state;
 
-  /*
-  const particles = game.add.particles('star');
-  const emitter = particles.createEmitter({
-    speed: 50,
-    lifespan: 200,
-    blendMode: 'ADD',
-  });
-  emitter.startFollow(sprite);
-
-  sprite.treasureParticles = particles;
-  sprite.treasureEmitter = emitter;
-  */
-
   const radial = game.add.image(sprite.x, sprite.y - 20, 'radial');
   radial.blendMode = 'ADD';
   radial.alpha = 0.33;
@@ -1713,7 +1700,7 @@ function winLevel() {
       x: hero.x,
       y: exit.sprite.y - 175 * mult,
       ease: 'Cubic.easeInOut',
-      delay: 500,
+      delay: 1500,
       duration: 1000,
       onComplete: () => {
         if (!lastLevel) {
@@ -1733,7 +1720,7 @@ function winLevel() {
       x: hero.x,
       y: exit.sprite.radial.y - 175 * mult,
       ease: 'Cubic.easeInOut',
-      delay: 500,
+      delay: 1500,
       duration: 1000,
       onComplete: () => {
         if (!lastLevel) {
@@ -1781,6 +1768,7 @@ function winLevel() {
 
   let delay = 0;
   if (lastLevel) {
+    delay += 3000;
     sidekick.anims.play('40');
 
     let sidekickX = origin + 600;
@@ -1791,6 +1779,7 @@ function winLevel() {
       y: sidekickY,
       angle: 0,
       alpha: 1,
+      delay,
       duration: 1000,
       ease: 'Quad.easeInOut',
     });
