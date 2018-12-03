@@ -131,7 +131,7 @@ const enemyDefaults = {
     mass: 7,
     quick: 0.5,
     jumps: true },
-  k: { hp: 400,
+  k: { hp: 2000,
     attack: 3,
     quick: 2,
     mass: 40,
