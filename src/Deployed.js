@@ -22,23 +22,32 @@ class GameMetadata extends Component<{}> {
     return (
       <div className="game-metadata">
         <h1>Pigheaded Pirate</h1>
-        <p>
-          created by
+        <h2>a tale of lust and love</h2>
+        <h3>
+          by
           <br />
           <a href="https://sartak.org">@sartak</a>
+          <br />
           <a href="https://twitter.com/sartak">
             <img src={twitterLogo} alt="@sartak on Twitter" />
           </a>
           <a href="https://twitch.tv/sartak">
             <img src={twitchLogo} alt="sartak on Twitch" />
           </a>
-        </p>
+        </h3>
         <p>
-          for
+          created solo in 48 hours as part of
           <br />
-          <a href="https://ldjam.com/events/ludum-dare/43/">
+          the
+          {' '}
+          <a href="https://ldjam.com/events/ludum-dare/43/pigheaded-pirate">
             Ludum Dare 43
           </a>
+          {' '}
+          compo
+        </p>
+        <p>
+          for the theme
           <br />
           <em>"Sacrifices must be made"</em>
         </p>

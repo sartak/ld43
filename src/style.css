@@ -21,11 +21,6 @@ body {
   vertical-align: bottom;
 }
 
-.stream-metadata img:nth-child(1),
-.game-metadata img:nth-child(1) {
-  margin-left: 0.5em;
-}
-
 .stream-metadata .url,
 .game-metadata .url {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
@@ -73,4 +68,8 @@ body {
 
 .teaser {
   text-align: center;
+}
+
+.game-metadata h2 {
+  font-style: italic;
 }

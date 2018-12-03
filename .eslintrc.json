@@ -29,6 +29,7 @@
     "no-unused-vars": ["off"],
     "no-mixed-operators": ["off"],
     "max-len": ["off"],
-    "camelcase": ["off"]
+    "camelcase": ["off"],
+    "react/jsx-one-expression-per-line": ["off"]
   }
 }
