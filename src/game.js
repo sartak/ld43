@@ -7,7 +7,6 @@ import enemySpriteA from './assets/enemy-a.png';
 import enemySpriteB from './assets/enemy-b.png';
 import enemySpriteC from './assets/enemy-c.png';
 import enemySpriteK from './assets/enemy-k.png';
-import enemySpriteL from './assets/enemy-l.png';
 import enemySpriteX from './assets/enemy-x.png';
 import exitSprite from './assets/exit.png';
 
@@ -124,7 +123,7 @@ const enemyDefaults = {
   b: { hp: 150,
     attack: 1,
     mass: 7,
-    quick: 2,
+    quick: 1.5,
     jumps: true },
   c: { hp: 50,
     attack: 3,
@@ -134,10 +133,6 @@ const enemyDefaults = {
   k: { hp: 400,
     attack: 2,
     quick: 1.2,
-    jumps: true },
-  l: { hp: 400,
-    attack: 1.4,
-    quick: 1.6,
     jumps: true },
   x: { hp: 200,
     attack: 2,
@@ -180,7 +175,6 @@ function preload() {
   game.load.image('enemy-b', enemySpriteB);
   game.load.image('enemy-c', enemySpriteC);
   game.load.image('enemy-k', enemySpriteK);
-  game.load.image('enemy-l', enemySpriteL);
   game.load.image('enemy-x', enemySpriteX);
   game.load.image('exit', exitSprite);
   game.load.image('level-1', level1Background);
