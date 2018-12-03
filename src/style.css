@@ -70,3 +70,7 @@ body {
 .game-metadata a {
   text-decoration: none;
 }
+
+.teaser {
+  text-align: center;
+}
