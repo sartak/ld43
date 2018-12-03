@@ -279,7 +279,7 @@ function createSidekick({ x, y }, isInitial) {
 
   if (isInitial) {
     updateCachedVelocityFor(sidekick);
-    createHpBar(sidekick, 600);
+    createHpBar(sidekick, 300);
   }
 
   sidekick.xHoldLag = 0;
@@ -1098,7 +1098,7 @@ function collisionStart(event) {
       const bMomentum = Vector.mult(b.cachedVelocity, b.body.mass);
       const relativeMomentum = Vector.sub(aMomentum, bMomentum);
       const impact = Vector.magnitude(relativeMomentum);
-      const baseDamage = impact / 10;
+      const baseDamage = impact / 5;
       const duration = impact;
       let impactForShake = impact;
 
