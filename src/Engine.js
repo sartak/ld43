@@ -29,7 +29,11 @@ export default class Engine extends Component<{}, State> {
     }
     return (
       <div className="activate" id="engine" onClick={() => this.activate()}>
+        <div style={{ textAlign: 'center' }}>
           click to play
+          <br />
+          Pigheaded Pirate
+        </div>
       </div>
     );
   }
