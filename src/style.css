@@ -60,7 +60,7 @@ body {
   color: white;
 }
 
-.game-metadata, .game-controls {
+.game-metadata {
   margin-top: 2em;
   text-align: center;
   font-size: 1.2em;
@@ -69,18 +69,4 @@ body {
 
 .game-metadata a {
   text-decoration: none;
-}
-
-.game-info .game-controls {
-  width: 48%;
-  float: left;
-}
-
-.game-info .game-controls ul {
-  text-align: left;
-}
-
-.game-info .game-metadata {
-  width: 48%;
-  float: right;
 }

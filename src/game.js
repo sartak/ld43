@@ -1688,7 +1688,7 @@ function updateSidekick() {
 
         sidekick.applyForce({
           x: level.facingRight ? 0.75 : -0.75,
-          y: Phaser.Math.FloatBetween(-0.20, 0),
+          y: state.tutorialState ? -0.05 : Phaser.Math.FloatBetween(-0.20, 0),
         });
 
         hero.applyForce({

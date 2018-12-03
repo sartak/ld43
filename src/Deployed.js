@@ -10,27 +10,8 @@ export default class Deployed extends Component<{}> {
       <div className="deployed">
         <Engine />
         <div className="game-info">
-          <GameControls />
           <GameMetadata />
         </div>
-      </div>
-    );
-  }
-}
-
-class GameControls extends Component<{}> {
-  render() {
-    return (
-      <div className="game-controls">
-        <p>
-          controls:
-          <ul>
-            <li>z: pickup, throw</li>
-            <li>↑: jump</li>
-            <li>←: left</li>
-            <li>→: right</li>
-          </ul>
-        </p>
       </div>
     );
   }
@@ -40,7 +21,7 @@ class GameMetadata extends Component<{}> {
   render() {
     return (
       <div className="game-metadata">
-        <p>Pigheaded Pirate</p>
+        <h1>Pigheaded Pirate</h1>
         <p>
           created by
           <br />
