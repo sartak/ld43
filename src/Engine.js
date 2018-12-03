@@ -1,6 +1,7 @@
 // @flow
 import React, { Component } from 'react';
 import startGame from './game';
+import cover from './assets/cover.png';
 
 type State = {
   activated: boolean
@@ -28,7 +29,7 @@ export default class Engine extends Component<{}, State> {
       );
     }
     return (
-      <div className="activate" id="engine" onClick={() => this.activate()}>
+      <div style={{ backgroundImage: `url(${cover})` }} className="activate" id="engine" onClick={() => this.activate()}>
         <div className="teaser">
           click to play
           <br />
