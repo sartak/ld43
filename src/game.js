@@ -446,6 +446,7 @@ function updateEnemy(enemy) {
         alpha: 0,
         y: enemy.y - 100,
         angle: enemy.angle - 45,
+        ease: 'Cubic.easeIn',
         duration: 500,
         onComplete: () => {
           removeEnemy(enemy);
@@ -1339,6 +1340,7 @@ function update() {
           targets: label,
           alpha: 0,
           y: label.y + 20,
+          ease: 'Cubic.easeIn',
           delay: i * 100,
           duration: 500,
         });
@@ -1645,7 +1647,6 @@ function updateSidekick() {
           });
 
           // tween toward zero
-          //
           if (!level.sidekickAngleRestore) {
             level.sidekickAngleRestore = game.tweens.add({
               targets: sidekick,
