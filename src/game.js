@@ -131,8 +131,8 @@ const enemyDefaults = {
     mass: 7,
     quick: 0.5,
     jumps: true },
-  k: { hp: 2000,
-    attack: 3,
+  k: { hp: 700,
+    attack: 1.5,
     quick: 2,
     mass: 40,
     flippy: false,
@@ -446,7 +446,6 @@ function updateEnemy(enemy) {
         alpha: 0,
         y: enemy.y - 100,
         angle: enemy.angle - 45,
-        ease: 'Cubic.easeIn',
         duration: 500,
         onComplete: () => {
           removeEnemy(enemy);
