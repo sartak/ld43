@@ -41,7 +41,7 @@ class GameMetadata extends Component<{}> {
           the
           {' '}
           <a href="https://ldjam.com/events/ludum-dare/43/pigheaded-pirate">
-            Ludum Dare 43
+            <strong>Ludum Dare 43</strong>
           </a>
           {' '}
           compo
