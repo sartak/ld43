@@ -131,7 +131,7 @@ const enemyDefaults = {
     mass: 7,
     quick: 0.5,
     jumps: true },
-  k: { hp: 2000,
+  k: { hp: 400,
     attack: 3,
     quick: 2,
     mass: 40,
@@ -1005,6 +1005,8 @@ function pickup() {
 
   if (tutorialState === 'awaiting-pickup') {
     const existing = state.tutorialHello;
+    existing.tween.stop();
+
     game.tweens.add({
       targets: existing,
       alpha: 0,
@@ -1038,7 +1040,7 @@ function pickup() {
 
     state.tutorialBye = bye;
 
-    game.tweens.add({
+    state.tutorialBye.tween = game.tweens.add({
       targets: bye,
       alpha: 1,
       y: bye.y - 40,
@@ -1096,7 +1098,7 @@ function collisionStart(event) {
       const bMomentum = Vector.mult(b.cachedVelocity, b.body.mass);
       const relativeMomentum = Vector.sub(aMomentum, bMomentum);
       const impact = Vector.magnitude(relativeMomentum);
-      const baseDamage = impact / 5;
+      const baseDamage = impact / 10;
       const duration = impact;
       let impactForShake = impact;
 
@@ -1284,7 +1286,7 @@ function update() {
 
     state.tutorialHello = hello;
 
-    game.tweens.add({
+    hello.tween = game.tweens.add({
       targets: hello,
       alpha: 1,
       y: hello.y - 40,
@@ -1706,6 +1708,7 @@ function updateSidekick() {
 
         if (state.tutorialState === 'awaiting-throw') {
           const existing = state.tutorialBye;
+          existing.tween.stop();
           game.tweens.add({
             targets: existing,
             alpha: 0,
