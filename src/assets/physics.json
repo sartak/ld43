@@ -40,30 +40,6 @@
 		},
 		"fixtures": []
 	},
-	"enemy-a": {
-		"type": "fromPhysicsEditor",
-		"label": "enemy-a",
-		"isStatic": false,
-		"density": 0.10000000149011612,
-		"restitution": 0,
-		"friction": 0.10000000149011612,
-		"frictionAir": 0.009999999776482582,
-		"frictionStatic": 0.5,
-		"collisionFilter": {
-			"group": 0,
-			"category": 1,
-			"mask": 255
-		},
-		"fixtures": [
-			{
-				"label": "",
-				"isSensor": false,
-				"vertices": [
-					[ { "x":70, "y":100 }, { "x":70, "y":0 }, { "x":0, "y":0 }, { "x":0, "y":100 } ]
-				]
-			}
-		]
-	},
 	"wall": {
 		"type": "fromPhysicsEditor",
 		"label": "wall",
@@ -108,30 +84,6 @@
 				"isSensor": false,
 				"vertices": [
 					[ { "x":32, "y":32 }, { "x":32, "y":0 }, { "x":0, "y":0 }, { "x":0, "y":32 } ]
-				]
-			}
-		]
-	},
-	"enemy-b": {
-		"type": "fromPhysicsEditor",
-		"label": "enemy-b",
-		"isStatic": false,
-		"density": 0.10000000149011612,
-		"restitution": 0,
-		"friction": 0.10000000149011612,
-		"frictionAir": 0.009999999776482582,
-		"frictionStatic": 0.5,
-		"collisionFilter": {
-			"group": 0,
-			"category": 1,
-			"mask": 255
-		},
-		"fixtures": [
-			{
-				"label": "",
-				"isSensor": false,
-				"vertices": [
-					[ { "x":70, "y":100 }, { "x":70, "y":0 }, { "x":0, "y":0 }, { "x":0, "y":100 } ]
 				]
 			}
 		]
@@ -263,7 +215,7 @@
 		"type": "fromPhysicsEditor",
 		"label": "sidekick",
 		"isStatic": false,
-		"density": 0.1,
+		"density": 5.1,
 		"restitution": 0,
 		"friction": 0.10000000149011612,
 		"frictionAir": 0.009999999776482582,
@@ -293,9 +245,9 @@
 		"type": "fromPhysicsEditor",
 		"label": "hero",
 		"isStatic": false,
-		"density": 0.10000000149011612,
+		"density": 30,
 		"restitution": 0,
-		"friction": 0.10000000149011612,
+		"friction": 1.1,
 		"frictionAir": 0.009999999776482582,
 		"frictionStatic": 0.5,
 		"collisionFilter": {
@@ -327,6 +279,68 @@
 					[ { "x":48, "y":81 }, { "x":48, "y":58 }, { "x":45, "y":85 } ],
 					[ { "x":48, "y":58 }, { "x":49, "y":30 }, { "x":37, "y":87 }, { "x":45, "y":85 } ],
 					[ { "x":45, "y":94 }, { "x":45, "y":85 }, { "x":37, "y":87 } ]
+				]
+			}
+		]
+	},
+	"enemy-a": {
+		"type": "fromPhysicsEditor",
+		"label": "enemy-a",
+		"isStatic": false,
+		"density": 0.10000000149011612,
+		"restitution": 0,
+		"friction": 0.10000000149011612,
+		"frictionAir": 0.009999999776482582,
+		"frictionStatic": 0.5,
+		"collisionFilter": {
+			"group": 0,
+			"category": 1,
+			"mask": 255
+		},
+		"fixtures": [
+			{
+				"label": "",
+				"isSensor": false,
+				"vertices": [
+					[ { "x":16, "y":90 }, { "x":16, "y":88 }, { "x":14, "y":64 }, { "x":11, "y":70 }, { "x":11, "y":80 }, { "x":14, "y":89 } ],
+					[ { "x":35, "y":98 }, { "x":33, "y":96 }, { "x":20, "y":90 }, { "x":16, "y":91 }, { "x":11, "y":99 }, { "x":34, "y":100 } ],
+					[ { "x":60, "y":69 }, { "x":54, "y":62 }, { "x":49, "y":91 }, { "x":54, "y":90 }, { "x":60, "y":81 } ],
+					[ { "x":40, "y":31 }, { "x":29, "y":32 }, { "x":24, "y":36 }, { "x":24, "y":55 }, { "x":48, "y":55 }, { "x":51, "y":42 }, { "x":48, "y":36 } ],
+					[ { "x":57, "y":97 }, { "x":49, "y":91 }, { "x":38, "y":96 }, { "x":39, "y":100 }, { "x":56, "y":100 } ],
+					[ { "x":12, "y":95 }, { "x":11, "y":99 }, { "x":16, "y":91 } ],
+					[ { "x":21, "y":50 }, { "x":24, "y":55 }, { "x":24, "y":36 }, { "x":21, "y":42 } ],
+					[ { "x":51, "y":50 }, { "x":51, "y":42 }, { "x":48, "y":55 } ],
+					[ { "x":49, "y":91 }, { "x":54, "y":62 }, { "x":24, "y":55 }, { "x":17, "y":62 }, { "x":18, "y":87 }, { "x":20, "y":90 }, { "x":33, "y":96 }, { "x":38, "y":96 } ],
+					[ { "x":54, "y":60 }, { "x":48, "y":55 }, { "x":24, "y":55 }, { "x":54, "y":62 } ],
+					[ { "x":17, "y":60 }, { "x":17, "y":62 }, { "x":24, "y":55 }, { "x":22, "y":55 } ],
+					[ { "x":14, "y":64 }, { "x":16, "y":88 }, { "x":18, "y":87 }, { "x":17, "y":62 } ]
+				]
+			}
+		]
+	},
+	"enemy-b": {
+		"type": "fromPhysicsEditor",
+		"label": "enemy-b",
+		"isStatic": false,
+		"density": 0.10000000149011612,
+		"restitution": 0,
+		"friction": 0.10000000149011612,
+		"frictionAir": 0.009999999776482582,
+		"frictionStatic": 0.5,
+		"collisionFilter": {
+			"group": 0,
+			"category": 1,
+			"mask": 255
+		},
+		"fixtures": [
+			{
+				"label": "",
+				"isSensor": false,
+				"vertices": [
+					[ { "x":52, "y":100 }, { "x":54, "y":73 }, { "x":54, "y":53 }, { "x":34, "y":22 }, { "x":24, "y":29 }, { "x":12, "y":72 }, { "x":16, "y":100 } ],
+					[ { "x":43, "y":8 }, { "x":38, "y":16 }, { "x":44, "y":21 }, { "x":46, "y":12 } ],
+					[ { "x":35, "y":8 }, { "x":34, "y":22 }, { "x":38, "y":16 } ],
+					[ { "x":38, "y":16 }, { "x":34, "y":22 }, { "x":54, "y":53 }, { "x":51, "y":29 }, { "x":44, "y":21 } ]
 				]
 			}
 		]
