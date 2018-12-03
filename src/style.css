@@ -33,6 +33,10 @@ body {
   height: 600px;
 }
 
+#engine, #engine canvas {
+  border-radius: 16px;
+}
+
 .deployed #engine {
   margin-top: 32px;
   margin-left: auto;
