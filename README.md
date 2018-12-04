@@ -6,3 +6,7 @@
 
 Run `yarn start` then open [http://localhost:3000](http://localhost:3000).
 
+# License
+
+The MIT License; see LICENSE.md.
+
