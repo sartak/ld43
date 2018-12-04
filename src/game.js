@@ -484,7 +484,6 @@ function updateEnemy(enemy) {
           x: -0.004 * enemy.quick,
           y: 0,
         });
-        enemy.setAngularVelocity(0.0005);
       } else if (dx > 10) {
         if (enemy.flippy !== false) {
           enemy.setFlipX(false);
@@ -493,7 +492,6 @@ function updateEnemy(enemy) {
           x: 0.004 * enemy.quick,
           y: 0,
         });
-        enemy.setAngularVelocity(-0.0005);
       } else {
         // attack
       }
