@@ -286,7 +286,7 @@ function createSidekick({ x, y }, isInitial) {
   sidekick.yHoldBob = 0;
   sidekick.name = 'sidekick';
   sidekick.setMass(4.9);
-  sidekick.attack = 1;
+  sidekick.attack = 1.75;
 
   return sidekick;
 }
