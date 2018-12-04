@@ -38,13 +38,12 @@ class GameMetadata extends Component<{}> {
         <p>
           created solo in 48 hours as part of
           <br />
-          the
-          {' '}
+          the <strong>Ludum Dare 43</strong> compo
+        </p>
+        <p>
           <a href="https://ldjam.com/events/ludum-dare/43/pigheaded-pirate">
-            <strong>Ludum Dare 43</strong>
+            ldjam.com/events/ludum-dare/43/pigheaded-pirate
           </a>
-          {' '}
-          compo
         </p>
         <p>
           for the theme
