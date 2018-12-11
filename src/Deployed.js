@@ -51,6 +51,13 @@ class GameMetadata extends Component<{}> {
           <em>"Sacrifices must be made"</em>
         </p>
         <p>
+          timelapse at
+          <br />
+          <a className="url" href="https://www.youtube.com/watch?v=8nS62CichfU">
+            youtube.com/watch?v=8nS62CichfU
+          </a>
+        </p>
+        <p>
           code at
           <br />
           <a className="url" href="https://github.com/sartak/pigheaded-pirate">
