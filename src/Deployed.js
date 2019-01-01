@@ -51,10 +51,10 @@ class GameMetadata extends Component<{}> {
           <em>"Sacrifices must be made"</em>
         </p>
         <p>
-          timelapse at
+          postmortem at
           <br />
-          <a className="url" href="https://www.youtube.com/watch?v=8nS62CichfU">
-            youtube.com/watch?v=8nS62CichfU
+          <a className="url" href="https://sartak.org/2018/12/the-whirlwind-of-game-design.html">
+            sartak.org/2018/12/the-whirlwind-of-game-design.html
           </a>
         </p>
         <p>
